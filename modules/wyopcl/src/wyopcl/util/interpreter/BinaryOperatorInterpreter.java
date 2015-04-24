@@ -47,9 +47,6 @@ public class BinaryOperatorInterpreter extends Interpreter {
 				return ((Constant.Integer)left).add((Constant.Integer)right);
 			}else if (left instanceof Constant.Decimal){
 				return ((Constant.Decimal)left).add(((Constant.Decimal)right));
-			}else if (left instanceof Constant.Char){
-				//Result = (char)(char + char)
-				return Constant.V_CHAR((char)(((Constant.Char)left).value + ((Constant.Char)right).value));
 			} 
 			break;
 		case SUB:			
@@ -57,9 +54,6 @@ public class BinaryOperatorInterpreter extends Interpreter {
 				return ((Constant.Integer)left).subtract((Constant.Integer)right);
 			}else if (left instanceof Constant.Decimal){
 				return ((Constant.Decimal)left).subtract(((Constant.Decimal)right));
-			}else if (left instanceof Constant.Char){
-				//Result = (int)(char - char)
-				return Constant.V_INTEGER(BigInteger.valueOf(((Constant.Char)left).value -  ((Constant.Char)right).value));
 			} 
 			break;
 		case MUL:		
@@ -67,9 +61,6 @@ public class BinaryOperatorInterpreter extends Interpreter {
 				return ((Constant.Integer)left).multiply((Constant.Integer)right);
 			}else if (left instanceof Constant.Decimal){
 				return ((Constant.Decimal)left).multiply(((Constant.Decimal)right));
-			}else if (left instanceof Constant.Char){
-				//Char * char
-				return Constant.V_INTEGER(BigInteger.valueOf((int)((Constant.Char)left).value * (int)((Constant.Char)right).value));
 			}
 			break;
 		case DIV:			

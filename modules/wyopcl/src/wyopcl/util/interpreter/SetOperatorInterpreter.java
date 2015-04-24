@@ -44,15 +44,6 @@ public class SetOperatorInterpreter extends Interpreter{
 			rhs = (Constant.Set)right;
 			result = lhs.union(rhs);
 			break;
-		case LEFT_UNION:
-			lhs = (Constant.Set)left;
-			Collection<Constant> list = new LinkedHashSet<Constant>();
-			list.add(right);
-			result = lhs.union(Constant.V_SET(list));
-			break;
-		case RIGHT_UNION:
-			internalFailure("Not implemented!", "InterpreterSetOperator.java", null);
-			break;
 		case INTERSECTION:
 			lhs = (Constant.Set)left;
 			rhs = (Constant.Set)right;

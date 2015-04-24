@@ -41,9 +41,6 @@ public class LengthOfInterpreter extends Interpreter{
 		}else if (collection instanceof Constant.Record){
 			length = ((Constant.Record)collection).values.size();
 			result =  Constant.V_INTEGER(BigInteger.valueOf(length));
-		}else if (collection instanceof Constant.Strung){
-			length = ((Constant.Strung)collection).value.length();
-			result =  Constant.V_INTEGER(BigInteger.valueOf(length));
 		}else if(collection instanceof Constant.Set){
 			length = ((Constant.Set)collection).values.size();
 			result =  Constant.V_INTEGER(BigInteger.valueOf(length));

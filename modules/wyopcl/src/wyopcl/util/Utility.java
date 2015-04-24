@@ -14,7 +14,7 @@ import java.util.TreeSet;
 
 import wyil.lang.Constant;
 import wyil.lang.Type;
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Type.FunctionOrMethod;
 import wyjc.runtime.WyList;
 import wyjc.runtime.WyRat;
@@ -65,12 +65,8 @@ public final class Utility {
 			if (!firstTime) {
 				r += ", ";
 			}
-			firstTime = false;
-			if(constant instanceof Constant.Char){
-				r += "'"+convertConstantToJavaObject(constant, paramType)+"'";
-			}else{
-				r += convertConstantToJavaObject(constant, paramType);
-			}
+			firstTime = false;			
+			r += convertConstantToJavaObject(constant, paramType);
 			
 		}
 		r += "}";
@@ -153,15 +149,6 @@ public final class Utility {
 			return ((Constant.Bool) constant).value;
 		} 
 		
-		if (constant instanceof Constant.Char) {
-			return ((Constant.Char) constant).value;
-		}
-		
-		if (constant instanceof Constant.Strung) {
-			//Add the double quotas to the return string.
-			return ((Constant.Strung) constant).value;
-		}
-		
 		if (constant instanceof Constant.Byte) {
 			if (paramType.equals(BigInteger.class)) {
 				return ((Constant.Byte) constant).value;
@@ -232,8 +219,6 @@ public final class Utility {
 	public static Class<?> convertToClass(Type paramType) {
 		if (paramType instanceof Type.Any) {
 			return Object.class;
-		} else if (paramType instanceof Type.Strung) {
-			return String.class;
 		} else if (paramType instanceof Type.Int) {
 			return Integer.class;
 		} else {
@@ -261,8 +246,6 @@ public final class Utility {
 			return Constant.V_LIST(new ArrayList<Constant>(values));
 		} else if (constant instanceof Constant.Record) {
 			return Constant.V_RECORD(((Constant.Record) constant).values);
-		} else if (constant instanceof Constant.Strung) {
-			return Constant.V_STRING(((Constant.Strung) constant).value);
 		} else if (constant instanceof Constant.Set) {
 			return Constant.V_SET(((Constant.Set) constant).values);
 		} else if (constant instanceof Constant.Type) {
@@ -273,8 +256,6 @@ public final class Utility {
 			return Constant.V_MAP(((Constant.Map) constant).values);
 		} else if (constant instanceof Constant.Byte) {
 			return Constant.V_BYTE(((Constant.Byte) constant).value);
-		} else if (constant instanceof Constant.Char) {
-			return Constant.V_CHAR(((Constant.Char) constant).value);
 		} else if (constant instanceof Constant.Decimal) {
 			return Constant.V_DECIMAL(((Constant.Decimal) constant).value);
 		} else if (constant instanceof Constant.Tuple) {
@@ -294,7 +275,7 @@ public final class Utility {
 	 * @param return_reg
 	 * @return
 	 */
-	public static StackFrame invokeFunction(Block blk, int depth, String name, List<Constant> params, int return_reg){
+	public static StackFrame invokeFunction(CodeBlock blk, int depth, String name, List<Constant> params, int return_reg){
 		StackFrame stackframe = new StackFrame(depth+1, blk, 0, name, return_reg);
 		
 		//Pass the input parameters.

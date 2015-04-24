@@ -6,7 +6,7 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map.Entry;
 
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Codes;
 import wyil.lang.Constant;
 import wyil.lang.Type;
@@ -212,27 +212,13 @@ public class IfIsInterpreter extends Interpreter {
 				}
 				return false;
 			}			
-			
-			if (type instanceof Type.Char) {
-				if(constant instanceof Constant.Char){
-					return true;
-				}
-				return false;			
-			} 
-			
+		
 			if (type instanceof Type.Int) {
 				if(constant instanceof Constant.Integer){
 					return true;
 				}
 				return false;			
 			} 
-			
-			if (type instanceof Type.Strung) {
-				if(constant instanceof Constant.Strung){
-					return true;
-				}
-				return false;		
-			}
 			
 			if (type instanceof Type.Real) {
 				if(constant instanceof Constant.Decimal){
@@ -298,9 +284,9 @@ public class IfIsInterpreter extends Interpreter {
 		if (checkType(constant, type)) {
 			//Go to the line of target label. 
 			String label = code.target;
-			Block block = stackframe.getBlock();
+			CodeBlock block = stackframe.getBlock();
 			printMessage(stackframe, code.toString(), code.target + "");
-			int linenumber = symboltable.getBlockPosByLabel(block, label);
+			int linenumber = symboltable.getCodeBlockPosByLabel(block, label);
 			stackframe.setLine(++linenumber);
 		} else {
 			//Go to the next line.

@@ -12,7 +12,7 @@ import java.util.List;
 import java.util.Map;
 
 import wycc.lang.NameID;
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Codes;
 import wyil.lang.Constant;
 import wyil.lang.Type;
@@ -48,14 +48,7 @@ public class InvokeInterpreter extends Interpreter {
 	 * @return the Constant object of the specified type. 
 	 */
 	private Constant convertJavaObjectToConstant(NameID nameID, Object obj, wyil.lang.Type toType) {
-		if (toType instanceof Type.Strung) {
-			if (obj instanceof BigDecimal) {
-				return Constant.V_STRING(((BigDecimal) obj).toPlainString());
-			}
-			//trim the beginning and ending quotes.
-			return Constant.V_STRING(obj.toString().replaceAll("^\"|\"$", ""));
-		} 
-
+	
 		if (toType instanceof Type.Int) {			
 			if(obj instanceof WyRat){
 				return Constant.V_INTEGER(((WyRat)obj).numerator());
@@ -156,7 +149,7 @@ public class InvokeInterpreter extends Interpreter {
 	public void interpret(Codes.Invoke code, StackFrame stackframe) {
 		
 		//Find the right block
-		Block blk = Interpreter.getFuncBlockByName(code.name.toString(), code.type());
+		CodeBlock blk = Interpreter.getFuncBlockByName(code.name.toString(), code.type());
 		// Create a list of parameters.
 		List<Constant> params = new ArrayList<Constant>();				
 		for (int operand: code.operands()) {

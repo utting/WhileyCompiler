@@ -68,15 +68,7 @@ public class ListOperatorInterpreter extends Interpreter{
 			}			
 			values.addAll(right.values);			
 			result = Constant.V_LIST(values);
-			break;
-		case LEFT_APPEND:
-			left.values.addAll(right.values);
-			result = Constant.V_LIST(left.values);
-			break;
-		case RIGHT_APPEND:
-			right.values.addAll(left.values);
-			result = Constant.V_LIST(right.values);
-			break;
+			break;		
 		default:
 			internalFailure("Not implemented!", "ListOperatorInterpreter.java", null);
 			break;

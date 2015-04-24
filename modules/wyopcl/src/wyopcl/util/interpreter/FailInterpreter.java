@@ -22,7 +22,7 @@ public class FailInterpreter extends Interpreter {
 	
 	public void interpret(Codes.Fail code, StackFrame stackframe) {
 		//Throw out an assertion error.
-		throw new RuntimeException(code.message.value);
+		throw new RuntimeException("runtime failue");
 		//internalFailure(code.message, "FailInterpreter.java", null);
 		
 	}

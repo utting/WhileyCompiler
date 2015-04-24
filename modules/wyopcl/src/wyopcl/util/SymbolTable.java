@@ -2,7 +2,7 @@ package wyopcl.util;
 
 import java.util.HashMap;
 
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Codes;
 
 /**
@@ -14,11 +14,11 @@ import wyil.lang.Codes;
  */
 public class SymbolTable{
 	
-	private HashMap<Block, HashMap<String, Integer>> labelLocMap;		
+	private HashMap<CodeBlock, HashMap<String, Integer>> labelLocMap;		
 	private String catchlabel = "";
 
 	public SymbolTable(){
-		labelLocMap = new HashMap<Block, HashMap<String, Integer>>();
+		labelLocMap = new HashMap<CodeBlock, HashMap<String, Integer>>();
 	}	
 	/**
 	 * Adds the label name in a block associated with its line number.	
@@ -26,7 +26,7 @@ public class SymbolTable{
 	 * @param label the name of label
 	 * @param line the line number
 	 */
-	public void addLabelLoc(Block blk, String label, int line){
+	public void addLabelLoc(CodeBlock blk, String label, int line){
 		HashMap<String, Integer> map;
 		if(labelLocMap.containsKey(blk)){
 			map = labelLocMap.get(blk);
@@ -38,7 +38,7 @@ public class SymbolTable{
 		labelLocMap.put(blk, map);
 	}
 	
-	public int getBlockPosByLabel(Block blk, String label){
+	public int getCodeBlockPosByLabel(CodeBlock blk, String label){
 		if(labelLocMap.containsKey(blk)){
 			HashMap<String, Integer> map = labelLocMap.get(blk);
 			if(map.containsKey(label)){
@@ -49,12 +49,8 @@ public class SymbolTable{
 		return -1;
 	}
 	
-	public void addTryCatchLoc(Codes.TryCatch trycatch, int line){				
-		catchlabel = trycatch.catches.get(0).second();
-	}
-	
-	public int getCatchPos(Block blk){
-		return getBlockPosByLabel(blk, catchlabel);
+	public int getCatchPos(CodeBlock blk){
+		return getCodeBlockPosByLabel(blk, catchlabel);
 	}
 	
 }

@@ -124,21 +124,7 @@ public class UpdateInterpreter extends Interpreter {
 		} 
 		return update(record, givenValue, fields[0]);
 	}
-
-	private Constant.Strung updateStrung(Codes.Update code, StackFrame stackframe) {
-		Constant.Strung strung = (Constant.Strung) stackframe.getRegister(code.target());
-		Constant.Char updatedValue = (Constant.Char) stackframe.getRegister(code.result());
-		// Get the index
-		Constant.Integer updateIndex = (Constant.Integer) stackframe.getRegister(code.operand(0));
-
-		// Replace a char in the strung at the index.
-		StringBuilder newStrung = new StringBuilder(strung.value);
-		newStrung.setCharAt(updateIndex.value.intValue(), updatedValue.value);
-		return Constant.V_STRING(newStrung.toString());
-	}
-
-
-
+	
 	private Constant.Map updateMap(Codes.Update code, StackFrame stackframe) {
 		Constant.Map map = (Constant.Map) stackframe.getRegister(code.target());
 		Constant givenValue = stackframe.getRegister(code.result());
@@ -208,8 +194,6 @@ public class UpdateInterpreter extends Interpreter {
 		} else if (afterType instanceof Type.Record) {
 			Constant.Record record = (Constant.Record) stackframe.getRegister(code.target());
 			result = updateRecord(code, stackframe, record, givenValue);
-		} else if (afterType instanceof Type.Strung) {
-			result = updateStrung(code, stackframe);
 		} else if (afterType instanceof Type.Map) {
 			result = updateMap(code, stackframe);
 		} else if (afterType instanceof Type.Reference) {

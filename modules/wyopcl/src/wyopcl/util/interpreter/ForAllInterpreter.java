@@ -158,13 +158,6 @@ public class ForAllInterpreter extends Interpreter {
 			Constant[] array = new Constant[set.values.size()];
 			array = set.values.toArray(array);
 			iterateOverListSet(code, stackframe, array);
-		}else if(source instanceof Constant.Strung){
-			Constant.Strung strung = (Constant.Strung)source;
-			Constant.Char[] chars = new Constant.Char[strung.value.length()];
-			for(int index=0;index<strung.value.length();index++){
-				chars[index] = Constant.V_CHAR(strung.value.charAt(index));
-			}
-			iterateOverListSet(code, stackframe, chars);
 		}else if (source instanceof Constant.Null){
 			//Go to loop end
 			gotoLoopEnd(code, stackframe);

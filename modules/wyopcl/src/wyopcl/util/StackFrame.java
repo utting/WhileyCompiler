@@ -3,11 +3,11 @@ package wyopcl.util;
 import java.util.Arrays;
 import java.util.HashMap;
 
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Constant;
 
 public class StackFrame {
-	private final Block block;
+	private final CodeBlock block;
 	private String name;
 	private int line;				
 	private int return_reg;	
@@ -15,7 +15,7 @@ public class StackFrame {
 	private int depth;
 	private Constant[] registers  = new Constant[0];
 	
-	public StackFrame(int depth, Block block, int line,
+	public StackFrame(int depth, CodeBlock block, int line,
 			String name, int return_reg){
 		this.depth = depth;
 		this.block = block;
@@ -32,7 +32,7 @@ public class StackFrame {
 		this.line = line;
 	}		
 	
-	public Block getBlock(){
+	public CodeBlock getBlock(){
 		return block;
 	}
 	
@@ -72,7 +72,7 @@ public class StackFrame {
 
 	@Override
 	public String toString() {			
-		return "Block:"+block.hashCode()+" Line:"+line;
+		return "CodeBlock:"+block.hashCode()+" Line:"+line;
 	}
 
 	public int getDepth() {

@@ -74,17 +74,6 @@ public class ConvertInterpreter extends Interpreter {
 			return Constant.V_LIST(values);
 		} 
 
-		if (fromType instanceof Type.Strung) {
-			// Cast Constant.Strung to Constant.List
-			List<Constant> values = new ArrayList<Constant>();
-			char[] charArray = ((Constant.Strung) constant).value.toCharArray();
-			for (char c : charArray) {
-				// Cast char to int.
-				values.add(Constant.V_INTEGER(BigInteger.valueOf((int) c)));
-			}
-			return Constant.V_LIST(values);
-		}
-
 		internalFailure("Not implemented!", "ConvertInterpreter.java", null);
 		return null;		
 
@@ -118,16 +107,6 @@ public class ConvertInterpreter extends Interpreter {
 		}
 
 		return Constant.V_RECORD(map);
-
-	}
-
-	private Constant.Char toConstantChar(Constant constant, Type fromType, Type.Char toType) {
-		if (fromType instanceof Type.Int) {
-			return Constant.V_CHAR((char) (((Constant.Integer) constant).value.intValue()));
-		} else {
-			internalFailure("Not implemented!", "ConvertInterpreter.java", null);
-			return null;
-		}
 
 	}
 
@@ -212,13 +191,6 @@ public class ConvertInterpreter extends Interpreter {
 			iterator = ((Constant.Set) constant).values.iterator();
 		} else if (constant instanceof Constant.List) {
 			iterator = ((Constant.List) constant).values.iterator();
-		} else if (constant instanceof Constant.Strung) {
-			Constant.Strung strung = (Constant.Strung) constant;
-			char[] charArray = strung.value.toCharArray();
-			for (char ch : charArray) {
-				values.add(castConstanttoConstant(Constant.V_CHAR(ch), fromElemType, toElemType));
-			}
-			return Constant.V_SET(values);
 		} else {
 			internalFailure("Not implemented!", "ConvertInterpreter.java", null);
 		}
@@ -251,11 +223,7 @@ public class ConvertInterpreter extends Interpreter {
 			if (constant instanceof Constant.List) {
 				Constant.List list = (Constant.List) constant;
 				return (Constant.Integer) list.values.get(0);
-			} 
-			if (constant instanceof Constant.Char) {
-				// Cast Char to int
-				return Constant.V_INTEGER(BigInteger.valueOf((int) (((Constant.Char) constant).value)));
-			} 
+			}  
 			if (constant instanceof Constant.Record){				
 				//Get the field types.
 				Constant.Record record = (Constant.Record)constant;
@@ -299,9 +267,6 @@ public class ConvertInterpreter extends Interpreter {
 		} else if (fromType instanceof Type.Union) {
 			if (constant instanceof Constant.Integer) {
 				return Constant.V_DECIMAL(BigDecimal.valueOf(((Constant.Integer) constant).value.longValue()));
-			} else if (constant instanceof Constant.Char) {
-				char value = ((Constant.Char) constant).value;
-				return Constant.V_DECIMAL(BigDecimal.valueOf((int) value));
 			} else {
 				return (Constant.Decimal) constant;
 			}
@@ -318,9 +283,6 @@ public class ConvertInterpreter extends Interpreter {
 		} else if (fromType instanceof Type.Real) {
 			internalFailure("Not implemented!", "ConvertInterpreter.java", null);
 			return null;
-		} else if (fromType instanceof Type.Strung) {
-			Constant.Strung strung = (Constant.Strung) constant;
-			return strung;
 		} 
 		internalFailure("Not implemented!", "ConvertInterpreter.java", null);
 		return null;
@@ -355,11 +317,7 @@ public class ConvertInterpreter extends Interpreter {
 	 * @param toType the casted type
 	 * @return Constant
 	 */
-	private Constant toConstantAny(Constant constant, Type fromType, Type.Any toType) {
-		if (constant instanceof DecimalFraction) {
-			// Cast to a string
-			return Constant.V_STRING(((DecimalFraction) constant).toString());
-		} 
+	private Constant toConstantAny(Constant constant, Type fromType, Type.Any toType) { 
 		if (constant instanceof Constant.Decimal) {			
 			Constant.Decimal decimal = (Constant.Decimal) constant;
 			// If the negative constant contains any decimal, then convert Constant.Decimal to DecimalFraction.
@@ -375,14 +333,6 @@ public class ConvertInterpreter extends Interpreter {
 			return decimal;
 		}
 
-		if(fromType instanceof Type.Union){
-			//For union type only.
-			if(constant instanceof Constant.Char){
-				//Cast the char to Constant.Strung, so that it can output the string without single quote (').
-				return Constant.V_STRING(((Constant.Char)constant).value+"");
-			}
-		}		
-
 		if (constant instanceof Constant) {
 			return constant;
 		}
@@ -390,15 +340,6 @@ public class ConvertInterpreter extends Interpreter {
 		return null;
 	}
 
-	private Constant toConstantStrung(Constant constant, Type fromType, Type.Strung toType) {
-		if (constant instanceof Constant.Strung) {
-			// Cast to a string
-			return Constant.V_STRING(constant.toString());
-		} else {
-			// No needs to convert the type of the operand.
-			return constant;
-		}
-	}
 	/**
 	 * Converts the constant to the constant of the given Union Type.
 	 * @param constant
@@ -574,9 +515,6 @@ public class ConvertInterpreter extends Interpreter {
 
 		if (toType instanceof Type.Any) {
 			return toConstantAny(constant, fromType, (Type.Any) toType);
-		} else if (toType instanceof Type.Char) {
-			// Cast ascii to Char
-			return toConstantChar(constant, fromType, (Type.Char) toType);
 		} else if (toType instanceof Type.Int) {
 			return toConstantInt(constant, (Type.Int) toType);
 		} else if (toType instanceof Type.List) {
@@ -603,8 +541,6 @@ public class ConvertInterpreter extends Interpreter {
 			return toConstantUnionRecords(constant, fromType, (Type.UnionOfRecords) toType);
 		} else if (toType instanceof Type.Union) {
 			return toConstantUnion(constant, fromType, (Type.Union) toType);
-		} else if (toType instanceof Type.Strung) {
-			return toConstantStrung(constant, fromType, (Type.Strung) toType);
 		} else if (toType instanceof Type.Reference){
 			return toConstantReference(constant, fromType, (Type.Reference)toType);
 		} else if (toType instanceof Type.Function){

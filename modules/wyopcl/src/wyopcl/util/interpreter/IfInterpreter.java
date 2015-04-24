@@ -3,7 +3,7 @@ package wyopcl.util.interpreter;
 import java.util.Iterator;
 
 import wyil.lang.Codes;
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Constant;
 import wyopcl.util.Interpreter;
 import wyopcl.util.StackFrame;
@@ -112,7 +112,7 @@ public class IfInterpreter extends Interpreter {
 		
 		if(satisfiable){
 			//Go to the if branch
-			Block block = stackframe.getBlock();
+			CodeBlock block = stackframe.getBlock();
 			linenumber = symboltable.getBlockPosByLabel(block, code.target);
 		}else{
 			linenumber++;

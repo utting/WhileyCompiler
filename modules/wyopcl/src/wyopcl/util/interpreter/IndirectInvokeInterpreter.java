@@ -3,7 +3,7 @@ package wyopcl.util.interpreter;
 import java.util.ArrayList;
 import java.util.List;
 
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Codes;
 import wyil.lang.Constant;
 import wyopcl.util.Closure;
@@ -53,7 +53,7 @@ public class IndirectInvokeInterpreter extends Interpreter {
 			stackframe.setLine(++linenumber);
 			params = null;
 		} else {
-			Block blk = Interpreter.getFuncBlockByName(lambda.name.toString(), code.type());
+			CodeBlock blk = Interpreter.getFuncBlockByName(lambda.name.toString(), code.type());
 			StackFrame newStackFrame = Utility.invokeFunction(blk,
 															  stackframe.getDepth(),
 															  lambda.name.toString(),
@@ -74,7 +74,7 @@ public class IndirectInvokeInterpreter extends Interpreter {
 		// Get the depth
 		Closure closure = (Closure) stackframe.getRegister(code.reference());
 		String name = closure.lambda.name.module() +":" + closure.lambda.name.name();
-		Block blk = Interpreter.getFuncBlockByName(name);
+		CodeBlock blk = Interpreter.getFuncBlockByName(name);
 		// Create a new StackFrame
 		StackFrame newStackFrame = new StackFrame(stackframe.getDepth() + 1, blk, 0, closure.lambda.name.toString(), code.target());
 		// Pass the input parameters.

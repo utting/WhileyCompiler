@@ -25,9 +25,8 @@ public class DebugInterpreter extends Interpreter{
 	public void interpret(Codes.Debug code, StackFrame stackframe) {	
 		int linenumber = stackframe.getLine();
 		//Read a string from operand register.
-		Constant.Strung str = (Constant.Strung)stackframe.getRegister(code.operand);
-		//Replace the double quotes.
-		System.out.print(str.value.replaceAll("\"", ""));
+		Constant.List str = (Constant.List)stackframe.getRegister(code.operand);
+		System.out.print(str);
 		printMessage(stackframe, code.toString(),"");
 		stackframe.setLine(++linenumber);
 	}

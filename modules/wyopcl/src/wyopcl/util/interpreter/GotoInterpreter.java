@@ -1,7 +1,7 @@
 package wyopcl.util.interpreter;
 
 import wyil.lang.Codes;
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyopcl.util.Interpreter;
 import wyopcl.util.StackFrame;
 /**
@@ -25,8 +25,8 @@ public class GotoInterpreter extends Interpreter {
 	public void interpret(Codes.Goto code, StackFrame stackframe){		
 		int linenumber = stackframe.getLine();	
 		
-		Block block = stackframe.getBlock();
-		linenumber = symboltable.getBlockPosByLabel(block, code.target);
+		CodeBlock block = stackframe.getBlock();
+		linenumber = symboltable.getCodeBlockPosByLabel(block, code.target);
 		stackframe.setLine(linenumber);
 		
 		printMessage(stackframe, code.toString(),

@@ -4,7 +4,7 @@ import java.util.ArrayList;
 import java.util.Iterator;
 
 import wycc.util.Pair;
-import wyil.lang.Code.Block;
+import wyil.lang.CodeBlock;
 import wyil.lang.Codes;
 import wyil.lang.Constant;
 import wyopcl.util.Interpreter;
@@ -30,7 +30,7 @@ public class SwitchInterpreter extends Interpreter {
 
 	public void interpret(Codes.Switch code, StackFrame stackframe) {
 		int linenumber = stackframe.getLine();
-		Block block = stackframe.getBlock();		
+		CodeBlock block = stackframe.getBlock();		
 		Constant value = stackframe.getRegister(code.operand);
 		ArrayList<Pair<Constant, String>> branches = code.branches;		
 		Iterator<Pair<Constant, String>> iterator = branches.iterator();

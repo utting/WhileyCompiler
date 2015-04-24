@@ -32,8 +32,6 @@ public class IndexOfInterpreter extends Interpreter {
 		//Get the value associated with the key.
 		if(key instanceof Constant.Integer){
 			value = list.values.get(((Constant.Integer)key).value.intValue());
-		}else if (key instanceof Constant.Char){
-			value = list.values.get(((Constant.Char)key).value);
 		}else{
 			internalFailure("Not implemented!", "InterpreterIndexOf.java", null);
 		}
@@ -46,29 +44,11 @@ public class IndexOfInterpreter extends Interpreter {
 		//Get the value associated with the key.
 		if(key instanceof Constant.Integer){
 			value = record.values.get(((Constant.Integer)key).value.intValue());
-		}else if (key instanceof Constant.Char){
-			value = record.values.get(((Constant.Char)key).value);
 		}else{
 			internalFailure("Not implemented!", "InterpreterIndexOf.java", null);
 		}
 
 		return value;
-	}
-	/**
-	 * Gets the char of a string at the given index
-	 * @param strung the string
-	 * @param index the index
-	 * @return the char
-	 */
-	private Constant getValuefromStrung(Constant.Strung strung, Constant index){
-		//Get the value associated with the key.
-		if(index instanceof Constant.Integer){
-			//Get the char at 'keyvalue' index and returns the Constant.Char object.
-			char c = strung.value.charAt(((Constant.Integer)index).value.intValue());
-			return Constant.V_CHAR(c);
-		}
-		internalFailure("Not implemented!", "InterpreterIndexOf.java", null);
-		return null;
 	}
 
 	private Constant getValuefromMap(Constant.Map map, Constant key){		
@@ -107,8 +87,6 @@ public class IndexOfInterpreter extends Interpreter {
 			value = getValuefromList((Constant.List)constant, key);
 		}else if(constant instanceof Constant.Record){
 			value = getValuefromRecord((Constant.Record)constant, key);
-		}else if(constant instanceof Constant.Strung){
-			value = getValuefromStrung((Constant.Strung)constant, key);
 		}else if (constant instanceof Constant.Map){
 			value = getValuefromMap((Constant.Map) constant, key);
 		}else{
