@@ -234,7 +234,7 @@ public class VcGenerator {
 				// this is an unreachable path.
 				Expr vc = buildVerificationCondition(
 						new Expr.Constant(Value.Bool(false)), branch,
-						bodyEnvironment, body);
+						body);
 				wyalFile.add(wyalFile.new Assert("assertion failed", vc,
 						toWycsAttributes(body.attributes(branch.pc()))));
 				break;
@@ -261,7 +261,7 @@ public class VcGenerator {
 						Expr nominalTest = new Expr.Is(returnedOperand,
 								convert(fmm.ret(), attributes));
 						Expr vc = buildVerificationCondition(nominalTest,
-								branch, bodyEnvironment, body, rawTest);
+								branch, body, rawTest);
 						// FIXME: add contextual information here
 						wyalFile.add(wyalFile.new Assert(
 								"return type invariant not satisfied", vc,
@@ -287,8 +287,7 @@ public class VcGenerator {
 								: new Expr.Nary(Expr.Nary.Op.TUPLE, arguments);
 						Expr.Invoke macro = new Expr.Invoke(prefix + i,
 								wyilFile.id(), Collections.EMPTY_LIST, arg);
-						Expr vc = buildVerificationCondition(macro, branch,
-								bodyEnvironment, body, rawTest);
+						Expr vc = buildVerificationCondition(macro, branch, body, rawTest);
 						// FIXME: add contextual information here
 						wyalFile.add(wyalFile.new Assert(
 								"postcondition not satisfied", vc,
@@ -492,8 +491,7 @@ public class VcGenerator {
 							// failed branch to ensure the precondition is met.
 							for (int i = 0; i != preconditions.length; ++i) {
 								Pair<String, Expr> p = preconditions[i];
-								Expr vc = buildVerificationCondition(
-										p.second(), branch, environment, block);
+								Expr vc = buildVerificationCondition(p.second(), branch, block);
 								wyalFile.add(wyalFile.new Assert(p.first(), vc,
 										toWycsAttributes(block
 												.attributes(branch.pc()))));
@@ -1072,8 +1070,7 @@ public class VcGenerator {
 						+ invariantPc.toString().replace(".", "_");
 				Expr.Invoke invariant = buildInvariantCall(activeBranch,
 						invariantMacroName, variables);
-				Expr vc = buildVerificationCondition(invariant, activeBranch,
-						environment, block);
+				Expr vc = buildVerificationCondition(invariant, activeBranch, block);
 				wyalFile.add(wyalFile.new Assert(
 						"loop invariant does not hold on entry", vc,
 						toWycsAttributes(block.attributes(invariantPc))));
@@ -1109,8 +1106,7 @@ public class VcGenerator {
 						+ invariantPc.toString().replace(".", "_");
 				Expr.Invoke invariant = buildInvariantCall(activeBranch,
 						invariantMacroName, variables);
-				Expr vc = buildVerificationCondition(invariant, activeBranch,
-						environment, block);
+				Expr vc = buildVerificationCondition(invariant, activeBranch, block);
 				wyalFile.add(wyalFile.new Assert("loop invariant not restored",
 						vc, toWycsAttributes(block.attributes(invariantPc))));
 			}
@@ -2157,7 +2153,7 @@ public class VcGenerator {
 	 * @return
 	 */
 	protected Expr buildVerificationCondition(Expr assertion, VcBranch branch,
-			Type[] environment, AttributedCodeBlock block, Expr... extraAssumptions) {
+			AttributedCodeBlock block, Expr... extraAssumptions) {
 		// First construct the assertion which forms the basis of the
 		// verification condition. The assertion must be shown to hold assuming
 		// the assumptions did. Therefore, we construct an implication to
@@ -2174,18 +2170,11 @@ public class VcGenerator {
 		// Next, we determine the set of used variables within the assertion.
 		// This is done to minimise the number of variables present in the final
 		// verification condition as otherwise this can, potentially, make life
-		// harder for the verifier.
+		// harder for the verifier (and for the reader :).
 		HashSet<String> uses = new HashSet<String>();
 		assertion.freeVariables(uses);
 
-		// Now, we determine the correct type for all used variables.
-
-		// FIXME: this does not actually always find the correct type of a
-		// variable. That's because it always uses the current type of a
-		// variable, rather than the type which held at a given position. This
-		// should be resolved by removing type tracking altogether and replacing
-		// it with the use of type tests (see #316).
-
+		// Now, determine the correct type for all used variables.
 		ArrayList<TypePattern> vars = new ArrayList<TypePattern>();
 		for (String var : uses) {
 			Type type;
@@ -2195,8 +2184,7 @@ public class VcGenerator {
 				// WyAL.
 				type = Type.T_ANY;
 			} else {
-				int reg = determineRegister(var, branch.prefixes());
-				type = environment[reg];
+				type = branch.typeOf(var);
 			}
 			SyntacticType t = convert(type, block.attributes(branch.pc()));
 			Expr.Variable v = new Expr.Variable(var);
@@ -2214,50 +2202,6 @@ public class VcGenerator {
 			return new Expr.ForAll(vars.get(0), assertion);
 		} else {
 			return new Expr.ForAll(new TypePattern.Tuple(vars), assertion);
-		}
-	}
-
-	/**
-	 * Determine the originating register number for this variable. This is made
-	 * difficult because of variable versioning. All variable names and versions
-	 * are encoded into a string of the form "n$v", where n is the variable name
-	 * (A.K.A. the prefix) and "v" is the version.
-	 * 
-	 * @param variable
-	 * @return
-	 */
-	private static int determineRegister(String variable, String[] prefixes) {
-		// First determine the variable name (i.e. the prefix).
-		int dollarIndex = variable.indexOf('$');
-		String prefix;
-		if (dollarIndex != -1) {
-			// In this case, the variable name was of the form "n$v" where n is
-			// the name, and v is the version. We don't need the version here,
-			// so strip it off.
-			prefix = variable.substring(0, dollarIndex);
-		} else {
-			// In this case, no version is given and, hence, there is nothing to
-			// strip off.
-			prefix = variable;
-		}
-		// Now, check whether this is a raw register identifier, or a named
-		// variable identifier.
-		if(prefix.startsWith("r%")) {
-			// This is a raw register identifier. Therefore, we can extract the
-			// register number directly.
-			return Integer.parseInt(prefix.substring(2));
-		} else {
-			// This is a named varaible identifier. Therefore, we need to look
-			// through the known list of named variable prefixes to see whether
-			// or not we can find it (which we should be able to do).
-			for (int i = 0; i != prefixes.length; ++i) {
-				if (prefix.equals(prefixes[i])) {
-					return i;
-				}
-			}
-			// Should be impossible to get here.
-			throw new RuntimeException(
-					"Unreachable code reached whilst looking for: " + variable);
 		}
 	}
 

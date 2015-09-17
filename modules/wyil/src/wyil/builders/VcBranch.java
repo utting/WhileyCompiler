@@ -344,7 +344,7 @@ public class VcBranch {
 	 * @param type
 	 *            Type of register being havoced
 	 */
-	public Expr.Variable havoc(int register) {
+	public Expr.Variable havoc(int register, Type type) {
 		if (state != State.ACTIVE) {
 			// Sanity check
 			throw new IllegalArgumentException(
@@ -361,6 +361,18 @@ public class VcBranch {
 		return var;
 	}
 
+	/**
+	 * Get the type of a specific variable. Here, a variable corresponds to one
+	 * previously created by either havoc or write and exists in the syntax of
+	 * wycs.
+	 * 
+	 * @param var
+	 * @return
+	 */
+	public Type typeOf(String var) {
+		
+	}
+	
 	/**
 	 * Assume a given condition holds on this branch.
 	 * 
