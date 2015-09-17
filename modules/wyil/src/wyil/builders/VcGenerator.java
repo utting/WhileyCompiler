@@ -2189,12 +2189,7 @@ public class VcGenerator {
 		ArrayList<TypePattern> vars = new ArrayList<TypePattern>();
 		for (String var : uses) {
 			Type type;
-			if (var.startsWith("_")) {
-				// FIXME: this is a hack to handle the fact that forall index
-				// variables are not explicit. However, we know that they are
-				// always integers.
-				type = Type.T_INT;
-			} else if (var.startsWith("null$")) {
+			if (var.startsWith("null$")) {
 				// FIXME: this is also something of a hack to deal with
 				// expressions which currently have no sensible translation into
 				// WyAL.
