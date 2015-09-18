@@ -27,6 +27,8 @@ package wyil.builders;
 
 import java.util.Arrays;
 import java.util.BitSet;
+import java.util.HashMap;
+import java.util.Map;
 
 import wycc.util.Pair;
 import wycs.core.Value;
@@ -102,23 +104,14 @@ public class VcBranch {
 	/**
 	 * Maintains the current assignment of variables to expressions.
 	 */
-	private final Expr[] environment;
-
+	private VcEnvironment environment;
+	
 	/**
-	 * A fixed list of variable "prefixes". These are the names given to each
-	 * register slot, and which are then appended with their SSA number to form
-	 * an actual register name. Note that the prefixes are fixed for the entire
-	 * branch graph of a function / method.
+	 * Maintains the current allocations of variables to their variable
+	 * identifiers.
 	 */
-	private final String[] prefixes;
-
-	/**
-	 * For each variable we maintain the current "version". This is an integer
-	 * value which is used to determine the appropriate SSA number for a given
-	 * variable.
-	 */
-	final int[] versions;
-
+	private String[] variables;
+	
 	/**
 	 * Contains the accumulated constraints in the order they were added.
 	 */
@@ -144,28 +137,14 @@ public class VcBranch {
 	 *
 	 * @param numInputs
 	 *            --- the minimum number of register slots required
-	 * @param prefixes
-	 *            --- Variable names to use as prefixes when generating register
-	 *            names. If null, the default names are used instead.
 	 */
-	public VcBranch(int numInputs, String[] prefixes) {
-		int numSlots = numInputs;
+	public VcBranch(VcEnvironment environment) {
 		this.parents = new VcBranch[0];
-		this.environment = new Expr[numSlots];
-		this.versions = new int[numSlots];
+		this.environment = environment;
+		this.variables = new String[environment.numVariables()];
 		this.constraints = null;
 		this.pc = new CodeBlock.Index(CodeBlock.Index.ROOT);
 		this.state = State.ACTIVE;
-
-		if (prefixes == null) {
-			// Construct default variable prefixes if none are given.
-			this.prefixes = new String[numSlots];
-			for (int i = 0; i != numSlots; ++i) {
-				this.prefixes[i] = "r" + i;
-			}
-		} else {
-			this.prefixes = prefixes;
-		}
 	}
 
 	/**
@@ -176,11 +155,9 @@ public class VcBranch {
 	 */
 	private VcBranch(VcBranch parent) {
 		this.parents = new VcBranch[] { parent };
-		this.environment = parent.environment.clone();
-		this.versions = Arrays.copyOf(parent.versions,
-				parent.versions.length);
-		this.constraints = null;
-		this.prefixes = parent.prefixes;
+		this.environment = parent.environment;
+		this.variables = Arrays.copyOf(parent.variables, parent.variables.length);		
+		this.constraints = null;		
 		this.pc = parent.pc;
 		this.state = State.ACTIVE;
 	}
@@ -191,23 +168,18 @@ public class VcBranch {
 	 * @param parent
 	 *            --- Parent branches being forked from. There must be at least
 	 *            two of these.
-	 * @param environment
-	 *            --- Environment for this branch which is the converged
-	 *            environments of all branches.
 	 * @param state
 	 *            --- State which this branch should be in. This may not be
 	 *            active, for example, if none of the parents were active.
 	 * 
 	 */
-	private VcBranch(VcBranch[] parents, Expr[] environment, 
-			int[] versions, State state, String[] prefixes) {
+	private VcBranch(VcBranch[] parents, String[] variables, State state) {
+		this.environment = parents[0].environment;
 		this.parents = parents;
-		this.environment = environment;
-		this.versions = versions;		
+		this.variables = variables;		
 		this.constraints = null;
 		this.pc = parents[0].pc;
-		this.state = state;
-		this.prefixes = prefixes;
+		this.state = state;		
 	}
 
 	/**
@@ -241,8 +213,8 @@ public class VcBranch {
 		}
 	}
 
-	public int numSlots() {
-		return environment.length;
+	public VcEnvironment environment() {
+		return environment;
 	}
 	
 	/**
@@ -262,15 +234,6 @@ public class VcBranch {
 	 */
 	public void setState(State state) {
 		this.state = state;
-	}
-
-	/**
-	 * Get the static list of prefixes
-	 * 
-	 * @return
-	 */
-	public String[] prefixes() {
-		return prefixes;
 	}
 	
 	/**
@@ -302,7 +265,7 @@ public class VcBranch {
 	 * @return
 	 */
 	public Expr read(int register) {
-		return environment[register];
+		return environment.read(variables[register]).second();
 	}
 
 	/**
@@ -319,14 +282,13 @@ public class VcBranch {
 	 * @param expr
 	 *            --- Expression being assigned.
 	 */
-	public void write(int register, Expr expr) {
+	public void write(int register, Type type, Expr expr) {
 		if (state != State.ACTIVE) {
 			// Sanity check
 			throw new IllegalArgumentException(
 					"Attempt to modify an inactive branch");
 		}
-		versions[register]++;
-		environment[register] = expr;
+		variables[register] = environment.write(register, type, expr);
 	}
 
 	/**
@@ -338,39 +300,15 @@ public class VcBranch {
 	 * <b>NOTE:</b>The branch must be ACTIVE for this operation to be permitted,
 	 * since it changes the state of the branch.
 	 * </p>
-	 * 
+	 *
 	 * @param register
-	 *            Register number to havoc
+	 * Register number to havoc
 	 * @param type
-	 *            Type of register being havoced
+	 * Type of register being havoced
 	 */
 	public Expr.Variable havoc(int register, Type type) {
-		if (state != State.ACTIVE) {
-			// Sanity check
-			throw new IllegalArgumentException(
-					"Attempt to modify an inactive branch");
-		}		
-		// to invalidate a variable, we assign it a "skolem" constant. That is,
-		// a fresh variable which has not been previously encountered in the
-		// branch.			
-		versions[register] = versions[register] + 1;			
-		String prefix = prefixes[register] == null ? "r%" + register : prefixes[register];		
-		Expr.Variable var = new Expr.Variable(prefix + "$"
-				+ versions[register]);
-		environment[register] = var;	
-		return var;
-	}
-
-	/**
-	 * Get the type of a specific variable. Here, a variable corresponds to one
-	 * previously created by either havoc or write and exists in the syntax of
-	 * wycs.
-	 * 
-	 * @param var
-	 * @return
-	 */
-	public Type typeOf(String var) {
-		
+		String name = environment.havoc(register, type);
+		return (Expr.Variable) environment.read(name).second();
 	}
 	
 	/**

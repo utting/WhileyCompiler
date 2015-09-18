@@ -120,14 +120,10 @@ public class VcGenerator {
 		// FIXME: get the register prefix!
 		Expr.Variable var = new Expr.Variable("r0");
 		if (body != null) {
-			VcBranch master = new VcBranch(Math.max(1, body.numSlots()), null);
-			master.write(0, var);
-			// Pass the given branch through the type invariant, producing
-			// exactly one exit branch from which we can generate the invariant
-			// expression.
-			Type[] environment = new Type[] { typeDecl.type() };
-			List<VcBranch> exitBranches = transform(master,
-					CodeBlock.Index.ROOT, true, environment, body);
+			VcEnvironment environment = new VcEnvironment(Math.max(1, body.numSlots()),null);
+			VcBranch master = new VcBranch(environment);
+			master.havoc(0, typeDecl.type());
+			List<VcBranch> exitBranches = transform(master, CodeBlock.Index.ROOT, true, body);
 			// At this point, we are guaranteed exactly one exit branch because
 			// there is only ever one exit point from an invariant.
 			for (VcBranch exitBranch : exitBranches) {
@@ -190,14 +186,12 @@ public class VcGenerator {
 		// declared types in the master branch. The master branch needs to have
 		// at least as many slots as there are parameters, though may require
 		// more if the body uses them.
-		VcBranch master = new VcBranch(Math.max(body.numSlots(), fmm.params()
-				.size()), prefixes);
+		VcEnvironment environment = new VcEnvironment(Math.max(body.numSlots(), fmm.params().size()), prefixes);
+		VcBranch master = new VcBranch(environment);
 
 		Expr[] arguments = new Expr[fmm.params().size()];
-		for (int i = 0; i != fmm.params().size(); ++i) {
-			Expr.Variable v = new Expr.Variable(prefixes[i]);
-			master.write(i, v);
-			arguments[i] = v;
+		for (int i = 0; i != fmm.params().size(); ++i) {			
+			arguments[i] = master.havoc(i, bodyEnvironment[i]);
 		}
 
 		// Second, assume all preconditions. To do this, we simply invoke the
@@ -216,8 +210,7 @@ public class VcGenerator {
 		// active. Terminated branches are those which have reached a return
 		// statement, whilst failed branches are those which have reached a fail
 		// statement.
-		List<VcBranch> exitBranches = transform(master, CodeBlock.Index.ROOT,
-				false, bodyEnvironment, body);
+		List<VcBranch> exitBranches = transform(master, CodeBlock.Index.ROOT, false, body);
 
 		// Examine all branches produced from the body. Each should be in one of
 		// two states: terminated or failed. Failed states indicate some
@@ -322,11 +315,10 @@ public class VcGenerator {
 	 * @return List of branches which reach the end of the block.
 	 */
 	public List<VcBranch> transform(VcBranch branch, CodeBlock.Index root,
-			boolean isInvariant, Type[] environment, AttributedCodeBlock block) {
+			boolean isInvariant, AttributedCodeBlock block) {
 		// Construct the label map which is needed for conditional branches
 		Map<String, CodeBlock.Index> labels = CodeUtils.buildLabelMap(block);
-		Pair<VcBranch, List<VcBranch>> p = transform(root, 0, branch, false, isInvariant,
-				environment, labels, block);
+		Pair<VcBranch, List<VcBranch>> p = transform(root, 0, branch, false, isInvariant, labels, block);
 		// Ok, return list of exit branches
 		return p.second();
 	}
@@ -363,8 +355,6 @@ public class VcGenerator {
 	 *            around the block until an invariant bytecode is found, at
 	 *            which point it will break. If no invariant is found, this will
 	 *            loop forever.
-	 * @param environment
-	 *            The mapping of registers to their declared types.
 	 * @param labels
 	 *            The map from labels to their block locations
 	 * @param block
@@ -378,8 +368,7 @@ public class VcGenerator {
 	 * 
 	 */
 	protected Pair<VcBranch, List<VcBranch>> transform(CodeBlock.Index parent,
-			int offset, VcBranch entryState, boolean breakOnInvariant, boolean isInvariant,
-			Type[] environment, Map<String, CodeBlock.Index> labels, AttributedCodeBlock block) {
+			int offset, VcBranch entryState, boolean breakOnInvariant, boolean isInvariant, Map<String, CodeBlock.Index> labels, AttributedCodeBlock block) {
 		// Move state to correct location
 		CodeBlock.Index start = new CodeBlock.Index(parent);
 		entryState.goTo(new CodeBlock.Index(parent, offset));
@@ -599,8 +588,7 @@ public class VcGenerator {
 	 * @param branches
 	 * @param block
 	 */
-	public Pair<String,Expr>[] getPreconditions(Code.Unit code, VcBranch branch,
-			Type[] environment, AttributedCodeBlock block) {
+	public Pair<String,Expr>[] getPreconditions(Code.Unit code, VcBranch branch, AttributedCodeBlock block) {
 		//
 		try {
 			switch (code.opcode()) {
@@ -714,8 +702,8 @@ public class VcGenerator {
 	 * @return
 	 * @throws Exception
 	 */
-	public Pair<String,Expr>[] preconditionCheck(Codes.Invoke code, VcBranch branch,
-			Type[] environment, AttributedCodeBlock block) throws Exception {
+	public Pair<String, Expr>[] preconditionCheck(Codes.Invoke code, VcBranch branch, AttributedCodeBlock block)
+			throws Exception {
 		ArrayList<Pair<String,Expr>> preconditions = new ArrayList<>();
 		//
 		// First, check for any potentially constrained types.    
@@ -836,19 +824,15 @@ public class VcGenerator {
 	 *            The enclosing loop bytecode to be transformed.
 	 * @param branch
 	 *            The branch state going into this bytecode.
-	 * @param environment
-	 *            The mapping of registers to their declared types.
 	 * @param labels
 	 *            The mapping of labels to locations in the given block.
 	 * @param block
 	 *            The enclosing code block. This is needed to access source
 	 *            location information.
 	 */
-	protected List<VcBranch> transform(Codes.Loop code, VcBranch branch,
-			Type[] environment, Map<String, CodeBlock.Index> labels,
+	protected List<VcBranch> transform(Codes.Loop code, VcBranch branch, Map<String, CodeBlock.Index> labels,
 			AttributedCodeBlock block) {
-		return transformLoopHelper(code, branch, environment, labels, block)
-				.second();
+		return transformLoopHelper(code, branch, labels, block).second();
 	}
 
 	/**
@@ -880,18 +864,17 @@ public class VcGenerator {
 	 *            The block being transformed over.
 	 */
 	protected List<VcBranch> transform(Codes.Quantify code, VcBranch branch,
-			boolean isInvariant, Type[] environment,
-			Map<String, CodeBlock.Index> labels, AttributedCodeBlock block) {
+			boolean isInvariant, Map<String, CodeBlock.Index> labels, AttributedCodeBlock block) {
 		// Write an arbitrary value to the index operand. This is necessary to
 		// ensure that there is something there if it is used within the loop
 		// body.
-		branch.havoc(code.indexOperand);
+		branch.havoc(code.indexOperand, Type.T_INT);
 		//
 		VcBranch original = branch.fork();
 		branch = branch.fork();
 		// This represents a quantifier looop
 		Pair<VcBranch, List<VcBranch>> p = transformQuantifierHelper(code,
-				branch, isInvariant, environment, labels, block);
+				branch, isInvariant, labels, block);
 		return extractQuantifiers(code, original, p.first(), p.second());
 	}
 
@@ -955,8 +938,6 @@ public class VcGenerator {
 	 *            The enclosing loop bytecode to be transformed.
 	 * @param branch
 	 *            The branch state going into this bytecode.
-	 * @param environment
-	 *            The mapping of registers to their declared types.
 	 * @param labels
 	 *            The mapping of labels to locations in the given block.
 	 * @param block
@@ -965,8 +946,8 @@ public class VcGenerator {
 	 * @return
 	 */
 	protected Pair<VcBranch, List<VcBranch>> transformQuantifierHelper(
-			Codes.Loop code, VcBranch branch, boolean isInvariant,
-			Type[] environment, Map<String, CodeBlock.Index> labels,
+Codes.Loop code, VcBranch branch,
+			boolean isInvariant, Map<String, CodeBlock.Index> labels,
 			AttributedCodeBlock block) {
 		// The loopPc gives the block index of the loop bytecode.
 		CodeBlock.Index loopPc = branch.pc();
@@ -979,8 +960,7 @@ public class VcGenerator {
 		// Now, run through loop body. This will produce several kinds of
 		// branch. Those which have terminated or branched out of the loop body,
 		// and those which have reached the end of the loop body. ).
-		return transform(loopPc, 0, activeBranch, false, isInvariant,
-				environment, labels, block);
+		return transform(loopPc, 0, activeBranch, false, isInvariant, labels, block);
 	}
 
 	/**
@@ -995,8 +975,6 @@ public class VcGenerator {
 	 *            The enclosing loop bytecode to be transformed.
 	 * @param branch
 	 *            The branch state going into this bytecode.
-	 * @param environment
-	 *            The mapping of registers to their declared types.
 	 * @param labels
 	 *            The mapping of labels to locations in the given block.
 	 * @param block
@@ -1005,7 +983,7 @@ public class VcGenerator {
 	 * @return
 	 */
 	protected Pair<VcBranch, List<VcBranch>> transformLoopHelper(
-			Codes.Loop code, VcBranch branch, Type[] environment,
+			Codes.Loop code, VcBranch branch,
 			Map<String, CodeBlock.Index> labels, AttributedCodeBlock block) {
 		// The loopPc gives the block index of the loop bytecode.
 		CodeBlock.Index loopPc = branch.pc();
@@ -1014,8 +992,7 @@ public class VcGenerator {
 		// First thing we need to do is determine whether or not this loop has a
 		// loop invariant, as this affects how we will approach it.
 		if (invariantOffset == -1) {
-			return transformLoopWithoutInvariant(code, branch, environment,
-					labels, block);
+			return transformLoopWithoutInvariant(code, branch, labels, block);
 		} else {
 			// Determine how many invariant blocks there are, as there might be
 			// more than one. In the case that there is more than one, they are
@@ -1127,8 +1104,6 @@ public class VcGenerator {
 	 *            The enclosing loop bytecode to be transformed.
 	 * @param branch
 	 *            The branch state going into this bytecode.
-	 * @param environment
-	 *            The mapping of registers to their declared types.
 	 * @param labels
 	 *            The mapping of labels to locations in the given block.
 	 * @param block
@@ -1136,8 +1111,7 @@ public class VcGenerator {
 	 *            location information.
 	 * @return
 	 */
-	protected Pair<VcBranch, List<VcBranch>> transformLoopWithoutInvariant(
-			Codes.Loop code, VcBranch branch, Type[] environment,
+	protected Pair<VcBranch, List<VcBranch>> transformLoopWithoutInvariant(Codes.Loop code, VcBranch branch,
 			Map<String, CodeBlock.Index> labels, AttributedCodeBlock block) {
 		CodeBlock.Index loopPc = branch.pc();
 		// This is the easy case, as there is no loop invariant. Therefore,
@@ -1154,7 +1128,7 @@ public class VcGenerator {
 		// in the former case go straight onto the list of returned branches.
 		// Those in the latter case are discarded (as discussed above).
 		Pair<VcBranch, List<VcBranch>> p = transform(loopPc, 0, activeBranch,
-				false, false, environment, labels, block);
+				false, false, labels, block);
 		fallThru.goTo(loopPc.next());
 		return new Pair<VcBranch, List<VcBranch>>(fallThru, p.second());
 	}
@@ -1417,8 +1391,6 @@ public class VcGenerator {
 	 *            The bytecode being transformed.
 	 * @param branch
 	 *            The current branch being transformed
-	 * @param environment
-	 *            The mapping of registers to their declared types.
 	 * @param labels
 	 *            The map from labels to their block locations
 	 * @param block
@@ -1428,18 +1400,15 @@ public class VcGenerator {
 	 *         instruction following the parent; and, the list of zero or more
 	 *         branches which have terminated or failed.
 	 */
-	protected Pair<VcBranch, List<VcBranch>> transform(
-			Codes.AssertOrAssume code, boolean isAssert, VcBranch branch,
-			Type[] environment, Map<String, CodeBlock.Index> labels,
-			AttributedCodeBlock block) {
+	protected Pair<VcBranch, List<VcBranch>> transform(Codes.AssertOrAssume code, boolean isAssert, VcBranch branch,
+			Map<String, CodeBlock.Index> labels, AttributedCodeBlock block) {
 		int start = wyalFile.declarations().size();
 		// First, transform the given branch through the assert or assume block.
 		// This will produce one or more exit branches, some of which may have
 		// reached failed states and need to be turned into verification
 		// conditions (for asserts only).
 		CodeBlock.Index pc = branch.pc();
-		Pair<VcBranch, List<VcBranch>> p = transform(pc, 0, branch, false,
-				true, environment, labels, block);
+		Pair<VcBranch, List<VcBranch>> p = transform(pc, 0, branch, false, true, labels, block);
 		List<VcBranch> exitBranches = p.second();
 		// Second, examine the list of exit branches and decide what to do with
 		// them. In the case of a failing branch then we need to generate an
@@ -1623,7 +1592,7 @@ public class VcGenerator {
 
 	protected void transform(Codes.Assign code, AttributedCodeBlock block,
 			VcBranch branch) {
-		branch.write(code.target(), branch.read(code.operand(0)));
+		branch.write(code.target(), code.assignedType(), branch.read(code.operand(0)));
 	}
 
 	/**
@@ -1648,14 +1617,14 @@ public class VcGenerator {
 				.attributes(branch.pc()));
 		Expr result = branch.read(code.operand(0));
 		SyntacticType type = convert(code.result, block.attributes(branch.pc()));
-		branch.write(code.target(), new Expr.Cast(type, result, attributes));
+		branch.write(code.target(), code.assignedType(), new Expr.Cast(type, result, attributes));
 	}
 
 	protected void transform(Codes.Const code, AttributedCodeBlock block,
 			VcBranch branch) {
 		Value val = convert(code.constant, block, branch);
-		branch.write(code.target(), new Expr.Constant(val,
-				toWycsAttributes(block.attributes(branch.pc()))));
+		branch.write(code.target(), code.assignedType(),
+				new Expr.Constant(val, toWycsAttributes(block.attributes(branch.pc()))));
 	}
 
 	protected void transform(Codes.Debug code, AttributedCodeBlock block,
@@ -1665,7 +1634,7 @@ public class VcGenerator {
 
 	protected void transform(Codes.Dereference code, AttributedCodeBlock block,
 			VcBranch branch) {
-		branch.havoc(code.target());
+		branch.havoc(code.target(),code.assignedType());
 	}
 
 	protected void transform(Codes.FieldLoad code, AttributedCodeBlock block,
@@ -1678,13 +1647,13 @@ public class VcGenerator {
 				.indexOf(code.field))));
 		Expr result = new Expr.IndexOf(src, index,
 				toWycsAttributes(block.attributes(branch.pc())));
-		branch.write(code.target(), result);
+		branch.write(code.target(), code.assignedType(), result);
 	}
 
 	protected void transform(Codes.IndirectInvoke code,
 			AttributedCodeBlock block, VcBranch branch) {
 		if (code.target() != Codes.NULL_REG) {
-			branch.havoc(code.target());
+			branch.havoc(code.target(), code.assignedType());
 		}
 	}
 
@@ -1703,9 +1672,8 @@ public class VcGenerator {
 			}
 			Expr argument = operands.length == 1 ? operands[0] : new Expr.Nary(
 					Expr.Nary.Op.TUPLE, operands,wyccAttributes);
-			branch.write(code.target(), new Expr.Invoke(code.name.name(),
-					code.name.module(), Collections.EMPTY_LIST, argument,
-					wyccAttributes));
+			branch.write(code.target(), code.assignedType(), new Expr.Invoke(code.name.name(), code.name.module(),
+					Collections.EMPTY_LIST, argument, wyccAttributes));
 
 			// This is a potential fix for #488, although it doesn't work
 			if(containsNominal(code.type().ret(),attributes)) {
@@ -1740,15 +1708,15 @@ public class VcGenerator {
 
 	protected void transform(Codes.Invert code, AttributedCodeBlock block,
 			VcBranch branch) {
-		branch.havoc(code.target());
+		branch.havoc(code.target(), code.assignedType());
 	}
 
 	protected void transform(Codes.IndexOf code, AttributedCodeBlock block,
 			VcBranch branch) {
 		Expr src = branch.read(code.operand(0));
 		Expr idx = branch.read(code.operand(1));
-		branch.write(code.target(), new Expr.IndexOf(src, idx,
-				toWycsAttributes(block.attributes(branch.pc()))));
+		branch.write(code.target(), code.assignedType(),
+				new Expr.IndexOf(src, idx, toWycsAttributes(block.attributes(branch.pc()))));
 	}
 
 	protected void transform(Codes.ArrayGenerator code, AttributedCodeBlock block, VcBranch branch) {
@@ -1756,7 +1724,7 @@ public class VcGenerator {
 		Collection<Attribute> attributes = toWycsAttributes(wyilAttributes); 
 		Expr element = branch.read(code.operand(0));
 		Expr count = branch.read(code.operand(1));
-		branch.havoc(code.target());
+		branch.havoc(code.target(), code.assignedType());
 		Expr arg = new Expr.Nary(Expr.Nary.Op.TUPLE, new Expr[] { 
 				branch.read(code.target()), element, count },
 				attributes);
@@ -1770,16 +1738,16 @@ public class VcGenerator {
 	protected void transform(Codes.Lambda code, AttributedCodeBlock block,
 			VcBranch branch) {
 		// TODO: implement lambdas somehow?
-		branch.havoc(code.target());
+		branch.havoc(code.target(), code.assignedType());
 	}
 
 	protected void transform(Codes.Move code, VcBranch branch) {
-		branch.write(code.target(), branch.read(code.operand(0)));
+		branch.write(code.target(), code.assignedType(), branch.read(code.operand(0)));
 	}
 
 	protected void transform(Codes.NewObject code, AttributedCodeBlock block,
 			VcBranch branch) {
-		branch.havoc(code.target());
+		branch.havoc(code.target(), code.assignedType());
 	}
 
 	protected void transform(Codes.Nop code, AttributedCodeBlock block,
@@ -1794,7 +1762,7 @@ public class VcGenerator {
 				.valueOf(code.index)));
 		Expr result = new Expr.IndexOf(src, index,
 				toWycsAttributes(block.attributes(branch.pc())));
-		branch.write(code.target(), result);
+		branch.write(code.target(), code.assignedType(), result);
 	}
 
 	protected void transform(Codes.UnaryOperator code,
@@ -1805,10 +1773,10 @@ public class VcGenerator {
 			break;
 		case NUMERATOR:
 		case DENOMINATOR:
-			branch.havoc(code.target());
+			branch.havoc(code.target(), code.assignedType());
 			break;
 		default:
-			branch.havoc(code.target());
+			branch.havoc(code.target(), code.assignedType());
 		}
 	}
 
@@ -1816,7 +1784,7 @@ public class VcGenerator {
 			VcBranch branch) {
 		Expr result = branch.read(code.result());
 		Expr oldSource = branch.read(code.target());
-		Expr newSource = branch.havoc(code.target());
+		Expr newSource = branch.havoc(code.target(), code.assignedType());
 		updateHelper(code.iterator(), oldSource, newSource, result, branch, block);
 	}
 
@@ -1900,9 +1868,8 @@ public class VcGenerator {
 			Code.AbstractUnaryAssignable code, VcBranch branch,
 			AttributedCodeBlock block) {
 		Expr lhs = branch.read(code.operand(0));
-
-		branch.write(code.target(), new Expr.Unary(operator, lhs,
-				toWycsAttributes(block.attributes(branch.pc()))));
+		branch.write(code.target(), code.assignedType(),
+				new Expr.Unary(operator, lhs, toWycsAttributes(block.attributes(branch.pc()))));
 	}
 
 	/**
@@ -1925,13 +1892,13 @@ public class VcGenerator {
 		Expr rhs = branch.read(code.operand(1));
 
 		if (operator != null) {
-			branch.write(code.target(), new Expr.Binary(operator, lhs, rhs,
-					toWycsAttributes(block.attributes(branch.pc()))));
+			branch.write(code.target(), code.assignedType(),
+					new Expr.Binary(operator, lhs, rhs, toWycsAttributes(block.attributes(branch.pc()))));
 		} else {
 			// In this case, we have a binary operator which we don't know how
 			// to translate into WyCS. Therefore, we need to invalidate the
 			// target register to signal this.
-			branch.havoc(code.target());
+			branch.havoc(code.target(), code.assignedType());
 		}
 	}
 
@@ -1956,8 +1923,8 @@ public class VcGenerator {
 		for (int i = 0; i != vals.length; ++i) {
 			vals[i] = branch.read(code_operands[i]);
 		}
-		branch.write(code.target(), new Expr.Nary(operator, vals,
-				toWycsAttributes(block.attributes(branch.pc()))));
+		branch.write(code.target(), code.assignedType(),
+				new Expr.Nary(operator, vals, toWycsAttributes(block.attributes(branch.pc()))));
 	}
 
 	/**
@@ -2057,7 +2024,7 @@ public class VcGenerator {
 			environment[i] = type;
 			if (type != null) {
 				Expr.Variable v = new Expr.Variable("r" + i);
-				master.write(i, v);
+				master.write(i, v, type);
 				// FIXME: what attributes to pass into convert?
 				declarations.add(new TypePattern.Leaf(convert(type,
 						Collections.EMPTY_LIST), v));
