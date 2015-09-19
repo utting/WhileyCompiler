@@ -257,6 +257,10 @@ public class VcBranch {
 		this.pc = pc;
 	}
 
+	public Type type(int register) {
+		return environment.read(variables[register]).first();
+	}
+	
 	/**
 	 * Get the constraint variable which corresponds to the given Wyil bytecode
 	 * register at this point on this branch.
@@ -268,6 +272,16 @@ public class VcBranch {
 		return environment.read(variables[register]).second();
 	}
 
+	/**
+	 * Check whether or not this register is defined at this point.
+	 * 
+	 * @param register
+	 * @return
+	 */
+	public boolean isDefined(int register) {
+		return variables[register] != null;
+	}
+	
 	/**
 	 * Assign an expression to a given Wyil bytecode register. This stores the
 	 * assigned expression for recall when the given register is subsequently

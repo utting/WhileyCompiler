@@ -427,9 +427,8 @@ public class VcGenerator {
 						fallThruBranches.add(branch);
 					} else {
 						boolean isAssert = code instanceof Codes.Assert;
-						Pair<VcBranch, List<VcBranch>> p = transform(
-								(Codes.AssertOrAssume) code, isAssert, branch,
-								environment, labels, block);
+						Pair<VcBranch, List<VcBranch>> p = transform((Codes.AssertOrAssume) code, isAssert, branch,
+								labels, block);
 						if(p.first() != null) {
 							worklist.add(p.first());
 						}
@@ -449,10 +448,9 @@ public class VcGenerator {
 								block);
 					} else if (code instanceof Codes.Quantify) {
 						bs = transform((Codes.Quantify) code, branch,
-								isInvariant, environment, labels, block);
+								isInvariant, labels, block);
 					} else {
-						bs = transform((Codes.Loop) code, branch, environment,
-								labels, block);
+						bs = transform((Codes.Loop) code, branch, labels, block);
 					}
 					worklist.addAll(bs);
 
@@ -471,8 +469,7 @@ public class VcGenerator {
 					// appropriate verification conditions to enforce them.
 					Code.Unit unit = (Code.Unit) code;
 					if (!isInvariant) {
-						Pair<String, Expr>[] preconditions = getPreconditions(
-								unit, branch, environment, block);
+						Pair<String, Expr>[] preconditions = getPreconditions(unit, branch, block);
 						if (preconditions.length > 0) {
 							// This bytecode has one or more preconditions which
 							// need to be asserted. Therefore, for each, create
@@ -605,7 +602,7 @@ public class VcGenerator {
 			case Code.OPCODE_invokefnv:
 			case Code.OPCODE_invokemd:
 			case Code.OPCODE_invokemdv:
-				return preconditionCheck((Codes.Invoke) code, branch, environment, block);
+				return preconditionCheck((Codes.Invoke) code, branch, block);
 			}
 			return new Pair[0];
 		} catch (Exception e) {
@@ -704,6 +701,7 @@ public class VcGenerator {
 	 */
 	public Pair<String, Expr>[] preconditionCheck(Codes.Invoke code, VcBranch branch, AttributedCodeBlock block)
 			throws Exception {
+		VcEnvironment environment = branch.environment();
 		ArrayList<Pair<String,Expr>> preconditions = new ArrayList<>();
 		//
 		// First, check for any potentially constrained types.    
@@ -715,7 +713,7 @@ public class VcGenerator {
 			Type t = code_type_params.get(i);
 			if (containsNominal(t, attributes)) {
 				int operand = code_operands[i];
-				Type rawType = expand(environment[operand],attributes);
+				Type rawType = expand(branch.type(operand),attributes);
 				Expr rawTest = new Expr.Is(branch.read(operand), convert(
 						rawType, attributes));
 				Expr nominalTest = new Expr.Is(branch.read(operand), convert(t,
@@ -1007,30 +1005,16 @@ Codes.Loop code, VcBranch branch,
 					invariantOffset);			
 			String invariantMacroPrefix = method.name() + "_loopinvariant_";
 			
-			// FIXME: this is a hack to determine which variables should be
-			// passed into the loop invariant macro. However, it really is a
-			// hack. Firstly, we use the prefixes to ensure that only named
-			// variables are included in the loop invariant. Secondly, we check
-			// whether the variable in question has been defined yet to further
-			// eliminate variables.
-			String[] prefixes = branch.prefixes();
-			boolean[] variables = new boolean[environment.length];
-			for (int i = 0; i != variables.length; ++i) {
-				if (branch.read(i) != null && prefixes[i] != null) {
-					variables[i] = true;
-				}
-			}
 			// *** END ***
 			for(int i=0;i!=numberOfInvariants;++i) {
-				buildInvariantMacro(firstInvariantPc.next(i), variables, environment, block);
+				buildInvariantMacro(firstInvariantPc.next(i), branch, block);
 			}
 			// This is the harder case as we must account for the loop invariant
 			// properly. To do this, we allow the loop to execute upto the loop
 			// invariant using the current branch state. At this point, we havoc
 			// modified variables and then assume the loop invariant, before
 			// running through the loop until the invariant is reached again.
-			Pair<VcBranch, List<VcBranch>> p = transform(loopPc, 0, branch,
-					true, false, environment, labels, block);
+			Pair<VcBranch, List<VcBranch>> p = transform(loopPc, 0, branch, true, false, labels, block);
 			// At this point, any branch which has terminated or branched out of
 			// the loop represents a true execution path. Any branch which has
 			// failed corresponds to ensuring the loop invariant on entry.
@@ -1045,8 +1029,7 @@ Codes.Loop code, VcBranch branch,
 				CodeBlock.Index invariantPc = firstInvariantPc.next(i);
 				String invariantMacroName = invariantMacroPrefix
 						+ invariantPc.toString().replace(".", "_");
-				Expr.Invoke invariant = buildInvariantCall(activeBranch,
-						invariantMacroName, variables);
+				Expr.Invoke invariant = buildInvariantCall(activeBranch,invariantMacroName);
 				Expr vc = buildVerificationCondition(invariant, activeBranch, block);
 				wyalFile.add(wyalFile.new Assert(
 						"loop invariant does not hold on entry", vc,
@@ -1061,8 +1044,7 @@ Codes.Loop code, VcBranch branch,
 				CodeBlock.Index invariantPc = firstInvariantPc.next(i);
 				String invariantMacroName = invariantMacroPrefix
 						+ invariantPc.toString().replace(".", "_");
-				Expr.Invoke invariant = buildInvariantCall(activeBranch, invariantMacroName,
-						variables);
+				Expr.Invoke invariant = buildInvariantCall(activeBranch, invariantMacroName);
 				activeBranch.assume(invariant);
 			}
 			// Process inductive case for this branch by allowing it to
@@ -1070,8 +1052,7 @@ Codes.Loop code, VcBranch branch,
 			// Branches which prematurely exit the loop are passed into the list
 			// of exit branches. These are valid as they only have information
 			// from the loop invariant.
-			p = transform(loopPc, invariantOffset + numberOfInvariants,
-					activeBranch, true, false, environment, labels, block);
+			p = transform(loopPc, invariantOffset + numberOfInvariants, activeBranch, true, false, labels, block);
 			activeBranch = p.first();
 			exitBranches.addAll(p.second());
 			// Reestablish loop invariant. To do this, we generate a
@@ -1081,8 +1062,7 @@ Codes.Loop code, VcBranch branch,
 				CodeBlock.Index invariantPc = firstInvariantPc.next(i);
 				String invariantMacroName = invariantMacroPrefix
 						+ invariantPc.toString().replace(".", "_");
-				Expr.Invoke invariant = buildInvariantCall(activeBranch,
-						invariantMacroName, variables);
+				Expr.Invoke invariant = buildInvariantCall(activeBranch,invariantMacroName);
 				Expr vc = buildVerificationCondition(invariant, activeBranch, block);
 				wyalFile.add(wyalFile.new Assert("loop invariant not restored",
 						vc, toWycsAttributes(block.attributes(invariantPc))));
@@ -1151,21 +1131,19 @@ Codes.Loop code, VcBranch branch,
 	 * @param block
 	 *            The enclosing code block
 	 */
-	private void buildInvariantMacro(CodeBlock.Index invariantPC,
-			boolean[] variables, Type[] environment, AttributedCodeBlock block) {
-		// FIXME: we don't need to include all variables, only those which are
-		// "active".
+	private void buildInvariantMacro(CodeBlock.Index invariantPC, VcBranch branch, AttributedCodeBlock block) {
+		// Only need to include variables which are defined at this point.
 		ArrayList<Type> types = new ArrayList<Type>();
-		for (int i = 0; i != variables.length; ++i) {
-			if (variables[i]) {
-				types.add(environment[i]);
+		VcEnvironment environment = branch.environment();
+		for (int i = 0; i != environment.numVariables(); ++i) {
+			if (branch.isDefined(i)) {
+				types.add(branch.type(i));
 			} else {
 				types.add(null);
 			}
 		}
 		String pc = invariantPC.toString().replace(".", "_");
-		buildMacroBlock(method.name() + "_loopinvariant_" + pc, invariantPC,
-				block, types, true);
+		buildMacroBlock(method.name() + "_loopinvariant_" + pc, invariantPC, block, types, true);
 	}
 
 	/**
@@ -1185,18 +1163,16 @@ Codes.Loop code, VcBranch branch,
 	 *            before the loop (i.e. rather than those local to the loop).
 	 * @return
 	 */
-	protected Expr.Invoke buildInvariantCall(VcBranch branch, String name,
-			boolean[] variables) {
+	protected Expr.Invoke buildInvariantCall(VcBranch branch, String name) {
+		VcEnvironment environment = branch.environment();
 		List<Expr> arguments = new ArrayList<Expr>();
-		for (int i = 0; i != variables.length; ++i) {
-			if (variables[i]) {
+		for (int i = 0; i != environment.numVariables(); ++i) {
+			if (branch.isDefined(i)) {
 				arguments.add(branch.read(i));
 			}
 		}
-		Expr argument = arguments.size() == 1 ? arguments.get(0)
-				: new Expr.Nary(Expr.Nary.Op.TUPLE, arguments);
-		return new Expr.Invoke(name, wyalFile.id(), Collections.EMPTY_LIST,
-				argument);
+		Expr argument = arguments.size() == 1 ? arguments.get(0) : new Expr.Nary(Expr.Nary.Op.TUPLE, arguments);
+		return new Expr.Invoke(name, wyalFile.id(), Collections.EMPTY_LIST, argument);
 	}
 
 	/**
@@ -1234,7 +1210,7 @@ Codes.Loop code, VcBranch branch,
 				// defined. This is possibly a workaround for a bug, where the
 				// loop modified variables can contain variables local to the
 				// loop.
-				branch.havoc(var);
+				branch.havoc(var, branch.type(var));
 			}
 		}
 	}
@@ -1825,32 +1801,6 @@ Codes.Loop code, VcBranch branch,
 		}
 	}
 	
-
-	/**
-	 * Havoc an "expression".  
-	 * 
-	 * @param source
-	 * @param branch
-	 * @param block
-	 * @return
-	 */
-	private Expr havoc(Expr source, VcBranch branch, AttributedCodeBlock block) {
-		if(source instanceof Expr.Variable) {
-			Expr.Variable v = (Expr.Variable) source;
-			int register = determineRegister(v.name,branch.prefixes()); 
-			branch.havoc(register);
-			return branch.read(register);
-		} else {
-			System.out.println("SOURCE IS: " + source.getClass().getName());
-			// TODO: Must implement the other cases. At the moment, I'm not sure
-			// the best way to do this though.
-		}
-		// It should be impossible to reach here.
-		internalFailure("unreachable code", filename);
-		return null;
-	}
-
-	
 	/**
 	 * Transform an assignable unary bytecode using a given target operator.
 	 * This must read the operand and then create the appropriate target
@@ -2013,22 +1963,17 @@ Codes.Loop code, VcBranch branch,
 		int start = wyalFile.declarations().size();
 		
 		// first, generate a branch for traversing the external block.
-		VcBranch master = new VcBranch(
-				Math.max(block.numSlots(), types.size()), null);
+		VcEnvironment environment = new VcEnvironment(Math.max(block.numSlots(), types.size()), null);
+		VcBranch master = new VcBranch(environment);
 
-		Type[] environment = new Type[types.size()];
 		ArrayList<TypePattern.Leaf> declarations = new ArrayList<TypePattern.Leaf>();
 		// second, set initial environment
 		for (int i = 0; i != types.size(); ++i) {
 			Type type = types.get(i);
-			environment[i] = type;
-			if (type != null) {
-				Expr.Variable v = new Expr.Variable("r" + i);
-				master.write(i, v, type);
-				// FIXME: what attributes to pass into convert?
-				declarations.add(new TypePattern.Leaf(convert(type,
-						Collections.EMPTY_LIST), v));
-			}
+			Expr.Variable v = master.havoc(i, type);
+			// FIXME: what attributes to pass into convert?
+			declarations.add(new TypePattern.Leaf(convert(type,
+					Collections.EMPTY_LIST), v));
 		}
 
 		// Construct the type declaration for the new block macro
@@ -2044,8 +1989,7 @@ Codes.Loop code, VcBranch branch,
 	
 		// At this point, we are guaranteed exactly one branch because there
 		// is only ever one exit point from a pre-/post-condition.
-		List<VcBranch> exitBranches = transform(master, root, isInvariant,
-				environment, block);
+		List<VcBranch> exitBranches = transform(master, root, isInvariant, block);
 		// Remove any verification conditions that were generated when
 		// processing this block.  		
 		// FIXME: this is something of a hack for now. A better solution would
@@ -2121,6 +2065,7 @@ Codes.Loop code, VcBranch branch,
 	 */
 	protected Expr buildVerificationCondition(Expr assertion, VcBranch branch,
 			AttributedCodeBlock block, Expr... extraAssumptions) {
+		VcEnvironment environment = branch.environment();
 		// First construct the assertion which forms the basis of the
 		// verification condition. The assertion must be shown to hold assuming
 		// the assumptions did. Therefore, we construct an implication to
@@ -2151,7 +2096,7 @@ Codes.Loop code, VcBranch branch,
 				// WyAL.
 				type = Type.T_ANY;
 			} else {
-				type = branch.typeOf(var);
+				type = environment.read(var).first();
 			}
 			SyntacticType t = convert(type, block.attributes(branch.pc()));
 			Expr.Variable v = new Expr.Variable(var);
