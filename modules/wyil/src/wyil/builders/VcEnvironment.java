@@ -91,15 +91,13 @@ public class VcEnvironment {
 	}
 	
 	public String write(int register, Type type, Expr expr) {
-		versions[register] = versions[register] + 1;
-		String name = prefixes[register] + "$" + register;
+		String name = fresh(register);
 		variables.put(name, new Pair<Type, Expr>(type, expr));
 		return name;
 	}
 	
 	public String havoc(int register, Type type) {
-		versions[register] = versions[register] + 1;
-		String name = prefixes[register] + "$" + register;
+		String name = fresh(register);
 		Expr.Variable var = new Expr.Variable(name);
 		variables.put(name, new Pair<Type, Expr>(type, var));
 		return name;
@@ -109,5 +107,8 @@ public class VcEnvironment {
 		return variables.get(name);
 	}
 	
-	
+	private String fresh(int register) {
+		versions[register] = versions[register] + 1;
+		return prefixes[register] + "$" + register;
+	}
 }

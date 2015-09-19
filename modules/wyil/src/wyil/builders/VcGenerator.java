@@ -218,6 +218,8 @@ public class VcGenerator {
 		// restored, etc). In contrast, terminated states indicate those which
 		// have successfully reached the end of the function. For these cases,
 		// we need to then check the post-condition.
+		arguments = shiftRight(arguments,1);					
+		
 		for (VcBranch branch : exitBranches) {
 			switch (branch.state()) {
 			case FAILED: {
@@ -264,11 +266,6 @@ public class VcGenerator {
 					// the returned value is read from the branch at the current
 					// pc. The other arguments correspond to the parameters
 					// which held on entry to this function.
-					arguments = new Expr[fmm.params().size() + 1];
-					for (int i = 0; i != fmm.params().size(); ++i) {
-						arguments[i + 1] = new Expr.Variable(prefixes[i]);
-					}
-					
 					arguments[0] = returnedOperand;
 					// For each postcondition generate a separate
 					// verification condition. Doing this allows us to gather
@@ -1969,7 +1966,7 @@ Codes.Loop code, VcBranch branch,
 		ArrayList<TypePattern.Leaf> declarations = new ArrayList<TypePattern.Leaf>();
 		// second, set initial environment
 		for (int i = 0; i != types.size(); ++i) {
-			Type type = types.get(i);
+			Type type = types.get(i);			
 			Expr.Variable v = master.havoc(i, type);
 			// FIXME: what attributes to pass into convert?
 			declarations.add(new TypePattern.Leaf(convert(type,
@@ -2031,17 +2028,14 @@ Codes.Loop code, VcBranch branch,
 		for (int i = 0; i != params.size(); ++i) {
 			Expr.Variable v = new Expr.Variable("r" + i);
 			// FIXME: what attributes to pass into convert?
-			declarations[i] = new TypePattern.Leaf(convert(params.get(i),
-					Collections.EMPTY_LIST), v);
+			declarations[i] = new TypePattern.Leaf(convert(params.get(i), Collections.EMPTY_LIST), v);
 		}
 
 		// Construct the type declaration for the new block macro
 		TypePattern from = new TypePattern.Tuple(declarations);
-		TypePattern to = new TypePattern.Leaf(convert(ret,
-				Collections.EMPTY_LIST), null);
+		TypePattern to = new TypePattern.Leaf(convert(ret, Collections.EMPTY_LIST), null);
 
-		wyalFile.add(wyalFile.new Function(name, Collections.EMPTY_LIST, from,
-				to, null));
+		wyalFile.add(wyalFile.new Function(name, Collections.EMPTY_LIST, from, to, null));
 	}
 
 	/**
@@ -2663,5 +2657,13 @@ Codes.Loop code, VcBranch branch,
 		} else {
 			return null;
 		}
+	}
+	
+	private static Expr[] shiftRight(Expr[] items, int n) {
+		Expr[] nitems = new Expr[items.length + n];
+		for (int i = 0; i != items.length; ++i) {
+			nitems[i + n] = items[i];
+		}
+		return nitems;
 	}
 }

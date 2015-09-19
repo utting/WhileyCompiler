@@ -105,13 +105,13 @@ public class VcBranch {
 	 * Maintains the current assignment of variables to expressions.
 	 */
 	private VcEnvironment environment;
-	
+
 	/**
 	 * Maintains the current allocations of variables to their variable
 	 * identifiers.
 	 */
 	private String[] variables;
-	
+
 	/**
 	 * Contains the accumulated constraints in the order they were added.
 	 */
@@ -156,8 +156,8 @@ public class VcBranch {
 	private VcBranch(VcBranch parent) {
 		this.parents = new VcBranch[] { parent };
 		this.environment = parent.environment;
-		this.variables = Arrays.copyOf(parent.variables, parent.variables.length);		
-		this.constraints = null;		
+		this.variables = Arrays.copyOf(parent.variables, parent.variables.length);
+		this.constraints = null;
 		this.pc = parent.pc;
 		this.state = State.ACTIVE;
 	}
@@ -173,13 +173,13 @@ public class VcBranch {
 	 *            active, for example, if none of the parents were active.
 	 * 
 	 */
-	private VcBranch(VcBranch[] parents, String[] variables, State state) {
+	private VcBranch(VcBranch[] parents, State state) {
 		this.environment = parents[0].environment;
 		this.parents = parents;
-		this.variables = variables;		
+		this.variables = new String[environment.numVariables()];
 		this.constraints = null;
 		this.pc = parents[0].pc;
-		this.state = state;		
+		this.state = state;
 	}
 
 	/**
@@ -216,7 +216,7 @@ public class VcBranch {
 	public VcEnvironment environment() {
 		return environment;
 	}
-	
+
 	/**
 	 * Determine the current state of this branch. In particular, whether or not
 	 * it is ACTIVE.
@@ -235,7 +235,7 @@ public class VcBranch {
 	public void setState(State state) {
 		this.state = state;
 	}
-	
+
 	/**
 	 * Update the program counter for this branch. This can, for example, be
 	 * used to move the branch to the next logical instruction. Or, it can be
@@ -251,25 +251,13 @@ public class VcBranch {
 	public void goTo(CodeBlock.Index pc) {
 		if (state != State.ACTIVE) {
 			// Sanity check
-			throw new IllegalArgumentException(
-					"Attempt to modify an inactive branch");
+			throw new IllegalArgumentException("Attempt to modify an inactive branch");
 		}
 		this.pc = pc;
 	}
 
 	public Type type(int register) {
 		return environment.read(variables[register]).first();
-	}
-	
-	/**
-	 * Get the constraint variable which corresponds to the given Wyil bytecode
-	 * register at this point on this branch.
-	 *
-	 * @param register
-	 * @return
-	 */
-	public Expr read(int register) {
-		return environment.read(variables[register]).second();
 	}
 
 	/**
@@ -281,7 +269,29 @@ public class VcBranch {
 	public boolean isDefined(int register) {
 		return variables[register] != null;
 	}
-	
+
+	/**
+	 * Mark a given register as undefined.
+	 * 
+	 * @param register
+	 */
+	public void setUndefined(int register) {
+		variables[register] = null;
+	}
+
+	/**
+	 * Get the constraint variable which corresponds to the given Wyil bytecode
+	 * register at this point on this branch.
+	 *
+	 * @param register
+	 * @return
+	 */
+	public Expr read(int register) {
+		String name = variables[register];
+		Pair<Type, Expr> p = environment.read(name);
+		return p.second();
+	}
+
 	/**
 	 * Assign an expression to a given Wyil bytecode register. This stores the
 	 * assigned expression for recall when the given register is subsequently
@@ -299,8 +309,7 @@ public class VcBranch {
 	public void write(int register, Type type, Expr expr) {
 		if (state != State.ACTIVE) {
 			// Sanity check
-			throw new IllegalArgumentException(
-					"Attempt to modify an inactive branch");
+			throw new IllegalArgumentException("Attempt to modify an inactive branch");
 		}
 		variables[register] = environment.write(register, type, expr);
 	}
@@ -316,15 +325,15 @@ public class VcBranch {
 	 * </p>
 	 *
 	 * @param register
-	 * Register number to havoc
+	 *            Register number to havoc
 	 * @param type
-	 * Type of register being havoced
+	 *            Type of register being havoced
 	 */
 	public Expr.Variable havoc(int register, Type type) {
-		String name = environment.havoc(register, type);
-		return (Expr.Variable) environment.read(name).second();
+		variables[register] = environment.havoc(register, type);
+		return (Expr.Variable) read(register);
 	}
-	
+
 	/**
 	 * Assume a given condition holds on this branch.
 	 * 
@@ -339,8 +348,7 @@ public class VcBranch {
 	public void assume(Expr e) {
 		if (state != State.ACTIVE) {
 			// Sanity check
-			throw new IllegalArgumentException(
-					"Attempt to modify an inactive branch");
+			throw new IllegalArgumentException("Attempt to modify an inactive branch");
 		}
 		if (constraints == null) {
 			constraints = e;
@@ -422,11 +430,9 @@ public class VcBranch {
 		State parentState = this.state;
 		for (VcBranch parent : parents) {
 			if (!pc.equals(parent.pc())) {
-				throw new IllegalArgumentException(
-						"Attempt to join parents at different locations");
+				throw new IllegalArgumentException("Attempt to join parents at different locations");
 			} else if (!state.equals(parent.state())) {
-				throw new IllegalArgumentException(
-						"Attempt to join parents in different states");
+				throw new IllegalArgumentException("Attempt to join parents in different states");
 			}
 		}
 		// Mark all branches involved in the join as internal. This
@@ -442,61 +448,15 @@ public class VcBranch {
 		System.arraycopy(parents, 0, nparents, 1, parents.length);
 		nparents[0] = this;
 
-		// Converge versions between the different parents. This is done
-		// simply by calculating the max subscript for each variable across all
-		// environments.		
-		int[] nVersions = convergeVersions(nparents);
-		
 		// Converge environments to ensure obtain a single environment which
 		// correctly represents the environments of all branches being joined.
 		// In some cases, individual environments may need to be patched to get
 		// them all into identical states.
-		Expr[] nEnvironment = convergeEnvironments(nparents, nVersions);
-
-		// Finally, create the new branch representing the join of all branches,
-		// and with those branches as its declared parents.
-		return new VcBranch(nparents, nEnvironment, nVersions, parentState,
-				prefixes);
-	}
-
-	/**
-	 * Converge the versions across all parent branches. This is done by
-	 * calculating the max subscript for each variable across all environments.
-	 * For example:
-	 * 
-	 * <pre>
-	 * Branch 1:   Branch 2:
-	 * 
-	 * |0|1|2|3|   |0|1|2|3|
-	 * =========   =========
-	 * |2|2|3|2|   |2|1|4|2|
-	 * </pre>
-	 * 
-	 * Here, the register slot number if given on top, and then subscript is
-	 * given below. The converged subscripts array would then be:
-	 * 
-	 * <pre>
-	 * |0|1|2|3|
-	 * =========
-	 * |2|2|4|2|
-	 * </pre>
-	 * 
-	 * Here, for example, slot 0 retains subscript 2 as this is true for both
-	 * branches. However, slot 2 is given subscript 4 as this is the maximum
-	 * subscript for that slot across both branches.
-	 * 
-	 * @param parents
-	 * @return
-	 */
-	private int[] convergeVersions(VcBranch[] parents) {
-		int[] nVersions = new int[versions.length];
-		for (int i = 0; i != parents.length; ++i) {
-			int[] pSubscripts = parents[i].versions;
-			for (int j = 0; j != nVersions.length; ++j) {
-				nVersions[j] = Math.max(nVersions[j], pSubscripts[j]);
-			}
-		}
-		return nVersions;
+		VcBranch branch = convergeParents(nparents);
+		// TODO: not sure why the following is necessary, but it is.
+		branch.state = parentState; // ?
+		// Done
+		return branch;
 	}
 
 	/**
@@ -560,91 +520,112 @@ public class VcBranch {
 	 * Finally, it is worth noting that in the special case that no variables
 	 * need to be patched, then no patch environments need to be created.
 	 * 
-	 * @param branches
+	 * @param parents
 	 *            --- Branches whose environments are to be converged.
 	 * @param versions
 	 *            --- the converged set of subscripts
 	 * 
 	 * @return
 	 */
-	private Expr[] convergeEnvironments(VcBranch[] branches, int[] versions) {
-		Expr[] newEnvironment = Arrays.copyOf(environment, environment.length);
+	private static VcBranch convergeParents(VcBranch[] parents) {
+		VcBranch root = parents[0];
+		VcBranch branch = new VcBranch(parents, State.ACTIVE);
+		VcEnvironment environment = branch.environment();
 		// First, go through and find all registers whose values differ between
 		// parents. These registers will need to be patched.
-		Pair<BitSet,BitSet> pvs = determinePatchVariables(newEnvironment, branches);
+		Pair<BitSet, BitSet> pvs = determinePatchVariables(parents);
 		BitSet toPatch = pvs.first();
-		BitSet toNull = pvs.second();
+		BitSet isUndefined = pvs.second();
 		// Second, patch any registers which were marked in previous phase. Such
 		// registers are given new names which are common to all branches, and
 		// appropriate assumptions are added to connect the old register names
 		// with the new.
-		if (toPatch.isEmpty() && toNull.isEmpty()) {
-			// This is the special case where there are no variables needing to
-			// be patched or nulled.
-			return newEnvironment;
-		} else {
-			// In this case, there is at least one varaible which needs to be
-			// patched. First, we go through and fork all branches to create the
-			// patch branches.
-			for (int j = 0; j != branches.length; ++j) {
-				branches[j] = branches[j].fork();
-			}
-			// Now, patch each variable which is marked for patching.
-			for (int i = 0; i != newEnvironment.length; ++i) {
-				if(toNull.get(i)) {
-					// This register needs to be nulled since it was undefined
-					// in one or more of the source branches. This check needs
-					// to come before the patch check, because a variable can be
-					// marked as both toNull and toPatch. In such case, it
-					// should be nulled.
-					newEnvironment[i] = null;
-				} else if (toPatch.get(i)) {
-					// This register needs to be patched. First, check whether
-					// this register has a prefix or not.
-					String prefix = prefixes[i] == null ? "r%" + i : prefixes[i];
-					Expr.Variable var = new Expr.Variable(prefix + "$" + versions[i]);
-					for (int j = 0; j != branches.length; ++j) {
-						branches[j].assume(new Expr.Binary(Expr.Binary.Op.EQ,
-								var, branches[j].read(i)));
-					}
-					newEnvironment[i] = var;
-				} 
-			}
-			// Done
-			return newEnvironment;
+		// In this case, there is at least one varaible which needs to be
+		// patched. First, we go through and fork all branches to create the
+		// patch branches.
+		for (int j = 0; j != parents.length; ++j) {
+			parents[j] = parents[j].fork();
 		}
+		// Now, patch each variable which is marked for patching.
+		for (int i = 0; i != environment.numVariables(); ++i) {
+			if (!isUndefined.get(i)) {
+				Type type = convergeTypes(i, parents);
+				if (toPatch.get(i)) {
+					// This register needs to be patched. First, check
+					// whether this register has a prefix or not.
+					Expr.Variable var = branch.havoc(i, type);
+					patchRegister(i, var, parents);
+				} else {
+					// This register does not need to be patched and is
+					// still defined in the new branch. This means it wasn't
+					// modified on any of the parent branches.
+					branch.write(i, type, root.read(i));
+				}
+			}
+		}
+		// Done
+		return branch;
+	}
+
+	/**
+	 * Patch a given register in each parent branch in to allow the given var
+	 * form to be taken forward.
+	 * 
+	 * @param register
+	 * @param var
+	 */
+	private static void patchRegister(int register, Expr.Variable var, VcBranch... parents) {
+		for (int j = 0; j != parents.length; ++j) {
+			parents[j].assume(new Expr.Binary(Expr.Binary.Op.EQ, var, parents[j].read(register)));
+		}
+	}
+
+	/**
+	 * Determine the union of types in the parent branches, as this will
+	 * represent the type of the given register going forward.
+	 * 
+	 * @param regiser
+	 * @param parents
+	 */
+	private static Type convergeTypes(int register, VcBranch[] parents) {
+		Type[] types = new Type[parents.length];
+		for (int j = 0; j != parents.length; ++j) {
+			types[j] = parents[j].type(register);
+		}
+		return Type.Union(types);
 	}
 
 	/**
 	 * Determine which variables differ between two or more branches. Such
 	 * variables need to be "patched" or "nulled".
 	 * 
-	 * @param environment
+	 * @param variables
 	 * @param parents
 	 * @return
 	 */
-	private static Pair<BitSet,BitSet> determinePatchVariables(Expr[] environment,
-			VcBranch[] parents) {
-		BitSet toPatch = new BitSet(environment.length);
-		BitSet toNull = new BitSet(environment.length);
-		for (int i = 0; i != environment.length; ++i) {
-			environment[i] = parents[0].environment[i];
+	private static Pair<BitSet, BitSet> determinePatchVariables(VcBranch[] parents) {
+		VcBranch root = parents[0];
+		VcEnvironment environment = root.environment();
+		BitSet toPatch = new BitSet(environment.numVariables());
+		BitSet isUndefined = new BitSet(environment.numVariables());
+		for (int i = 0; i != environment.numVariables(); ++i) {
 			for (int j = 0; j != parents.length; ++j) {
 				VcBranch parent = parents[j];
-				if (environment[i] == null || parent.environment[i] == null) {
+				if (!parent.isDefined(i)) {
 					// In this case, the variable is undefined on one or both
 					// parents. This means it cannot be used after this point
 					// and, hence, can be safey ignored.
-					toNull.set(i);
-				} else if (!parent.environment[i].equivalent(environment[i])) {
-					// In this case, there is some difference between this parent's
+					isUndefined.set(i);
+				} else if (parent.variables[i] != root.variables[i]) {
+					// In this case, there is some difference between this
+					// parent's
 					// environment and at least one others. In such case, the
 					// variable in question needs to be patched.
 					toPatch.set(i);
 				}
 			}
 		}
-		return new Pair<BitSet,BitSet>(toPatch,toNull);
+		return new Pair<BitSet, BitSet>(toPatch, isUndefined);
 	}
 
 }
