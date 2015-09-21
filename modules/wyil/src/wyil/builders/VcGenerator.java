@@ -117,12 +117,12 @@ public class VcGenerator {
 	protected void transform(WyilFile.Type typeDecl, WyilFile wyilFile) {
 		AttributedCodeBlock body = typeDecl.invariant();
 		Expr invariant = null;
-		// FIXME: get the register prefix!
-		Expr.Variable var = new Expr.Variable("r0");
+		Expr.Variable var = null;
 		if (body != null) {
 			VcEnvironment environment = new VcEnvironment(Math.max(1, body.numSlots()),null);
 			VcBranch master = new VcBranch(environment);
-			master.havoc(0, typeDecl.type());
+			var = master.havoc(0, typeDecl.type());		
+			
 			List<VcBranch> exitBranches = transform(master, CodeBlock.Index.ROOT, true, body);
 			// At this point, we are guaranteed exactly one exit branch because
 			// there is only ever one exit point from an invariant.
@@ -1001,7 +1001,16 @@ Codes.Loop code, VcBranch branch,
 			CodeBlock.Index firstInvariantPc = new CodeBlock.Index(loopPc,
 					invariantOffset);			
 			String invariantMacroPrefix = method.name() + "_loopinvariant_";
-			
+			// FIXME: this is a hack to determine which variables should be
+			// passed into the loop invariant macro. However, it really is a
+			// hack. Firstly, we use the prefixes to ensure that only named
+			// variables are included in the loop invariant. Secondly, we check
+			// whether the variable in question has been defined yet to further
+			// eliminate variables.
+			boolean[] variables = new boolean[branch.environment().numVariables()];
+			for (int i = 0; i != variables.length; ++i) {
+				variables[i] = branch.isDefined(i);
+			}
 			// *** END ***
 			for(int i=0;i!=numberOfInvariants;++i) {
 				buildInvariantMacro(firstInvariantPc.next(i), branch, block);
@@ -1019,6 +1028,13 @@ Codes.Loop code, VcBranch branch,
 			// processing.
 			VcBranch activeBranch = p.first();
 			List<VcBranch> exitBranches = p.second();
+			// FIXME: this is a continued hack from above; all variables which
+			// are local to the loop body are marked as undefined.
+			for (int i = 0; i != variables.length; ++i) {
+				if(!variables[i]) {
+					activeBranch.setUndefined(i);
+				}
+			}
 			// Enforce invariants on entry. To do this, we generate a
 			// verification condition that asserts each invariant macro given the
 			// current branch state.
@@ -1052,6 +1068,13 @@ Codes.Loop code, VcBranch branch,
 			p = transform(loopPc, invariantOffset + numberOfInvariants, activeBranch, true, false, labels, block);
 			activeBranch = p.first();
 			exitBranches.addAll(p.second());
+			// FIXME: this is a continued hack from above; all variables which
+			// are local to the loop body are marked as undefined.
+			for (int i = 0; i != variables.length; ++i) {
+				if(!variables[i]) {
+					activeBranch.setUndefined(i);
+				}
+			}
 			// Reestablish loop invariant. To do this, we generate a
 			// verification condition that asserts the invariant macro given the
 			// current branch state.
@@ -1201,8 +1224,7 @@ Codes.Loop code, VcBranch branch,
 	public void havocVariables(int[] variables, VcBranch branch) {
 		for (int i = 0; i != variables.length; ++i) {
 			int var = variables[i];
-			Expr e = branch.read(var);
-			if (e != null) {
+			if (branch.isDefined(var)) {
 				// FIXME: We only havoc variables that have already been
 				// defined. This is possibly a workaround for a bug, where the
 				// loop modified variables can contain variables local to the
@@ -1966,11 +1988,13 @@ Codes.Loop code, VcBranch branch,
 		ArrayList<TypePattern.Leaf> declarations = new ArrayList<TypePattern.Leaf>();
 		// second, set initial environment
 		for (int i = 0; i != types.size(); ++i) {
-			Type type = types.get(i);			
-			Expr.Variable v = master.havoc(i, type);
-			// FIXME: what attributes to pass into convert?
-			declarations.add(new TypePattern.Leaf(convert(type,
-					Collections.EMPTY_LIST), v));
+			Type type = types.get(i);	
+			if(type != null) {
+				Expr.Variable v = master.havoc(i, type);
+				// FIXME: what attributes to pass into convert?
+				declarations.add(new TypePattern.Leaf(convert(type,
+						Collections.EMPTY_LIST), v));
+			}
 		}
 
 		// Construct the type declaration for the new block macro

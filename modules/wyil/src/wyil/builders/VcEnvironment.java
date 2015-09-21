@@ -25,6 +25,7 @@
 
 package wyil.builders;
 
+import java.util.Arrays;
 import java.util.HashMap;
 
 import wycc.util.Pair;
@@ -78,12 +79,14 @@ public class VcEnvironment {
 		if (prefixes == null) {
 			// Construct default variable prefixes if none are given.
 			this.prefixes = new String[numSlots];
-			for (int i = 0; i != numSlots; ++i) {
+		} else {
+			this.prefixes = prefixes;	
+		}
+		for (int i = 0; i != numSlots; ++i) {
+			if(this.prefixes[i] == null) {
 				this.prefixes[i] = "r" + i;
 			}
-		} else {
-			this.prefixes = prefixes;
-		}
+		}		
 	}
 
 	public int numVariables() {
@@ -108,7 +111,8 @@ public class VcEnvironment {
 	}
 	
 	private String fresh(int register) {
-		versions[register] = versions[register] + 1;
-		return prefixes[register] + "$" + register;
+		int version = versions[register];
+		versions[register] = version + 1;
+		return prefixes[register] + "$" + version;
 	}
 }
