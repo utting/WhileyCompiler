@@ -3,8 +3,8 @@
 	<classpathentry kind="src" path="src"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/whiley.wybs"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/Ant"/>
-	<classpathentry kind="con" path="org.eclipse.jdt.USER_LIBRARY/WyRL"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/WhileyCompiler.wybs"/>
+	<classpathentry kind="lib" path="/Users/utting/git/WhileyCompiler/lib/wyrl-v0.4.4.jar"/>
 	<classpathentry kind="output" path="src"/>
 </classpath>
