@@ -26,3 +26,7 @@ wyrt/ --- The Whiley Standard Library.  This provides the core
           implementation for the standard library.  All architecture
           specific code is omitted and, instead, is stored within the
           respective back-end module (e.g. wyjc).
+
+wy2b/ --- Whiley 2 Boogie translator.  Boogie is an intermediate language
+	  for verification purposes.  See https://github.com/boogie-org/boogie.
+
