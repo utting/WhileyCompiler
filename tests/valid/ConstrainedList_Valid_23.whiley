@@ -1,18 +1,20 @@
 
 
 type Matrix is (int[][] rows)
-    where no {
-        i in 0 .. |rows|, j in 0 .. |rows| | |rows[i]| != |rows[j]|
+    where all {
+        i in 0 .. |rows|, j in 0 .. |rows| | |rows[i]| == |rows[j]|
     }
 
 function run(Matrix A, Matrix B) -> Matrix
 requires (|A| > 0) && ((|B| > 0) && (|B| == |A[0]|)):
-    int[][] C = [[0;0]; |A|]
+    int[][] C = [[]; |A|]
     int i = 0
-    while i < |A| where i >= 0:
-        int[] row = [0; |B|]
+    while i < |A|
+    where i >= 0 && |C| == |A|
+    where all { k in 0..i | |C[k]| == |B[0]| }:
+        int[] row = [0; |B[0]|]
         int j = 0
-        while j < |B[0]| where j >= 0:
+        while j < |B[0]| where j >= 0 && |row| == |B[0]|:
             int r = 0
             int k = 0 
             while k < |B| where k >= 0:
@@ -24,7 +26,7 @@ requires (|A| > 0) && ((|B| > 0) && (|B| == |A[0]|)):
         i = i + 1
     return C
 
-public export method test() -> void:
+public export method test() :
     Matrix m1 = [[1, 2], [3, 4]]
     Matrix m2 = [[5, 6], [7, 8]]
     Matrix m3 = run(m1, m2)

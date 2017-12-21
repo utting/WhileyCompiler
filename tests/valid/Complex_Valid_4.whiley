@@ -6,7 +6,7 @@ public function BTree() -> BTree:
     return null
 
 public function add(BTree tree, int item) -> BTree:
-    if tree == null:
+    if tree is null:
         tree = {item: item, left: null, right: null}
     else:
         if item < tree.item:
@@ -16,7 +16,7 @@ public function add(BTree tree, int item) -> BTree:
     return tree
 
 function contains(BTree tree, int item) -> bool:
-    if tree == null:
+    if tree is null:
         return false
     else:
         if tree.item == item:
@@ -27,9 +27,9 @@ function contains(BTree tree, int item) -> bool:
             else:
                 return contains(tree.right, item)
 
-constant items is [5, 4, 6, 3, 7, 2, 8, 1, 9]
+int[] items = [5, 4, 6, 3, 7, 2, 8, 1, 9]
 
-public export method test() -> void:
+public export method test() :
     BTree tree = BTree()
     tree = add(tree, 1)
     tree = add(tree, 2)

@@ -1,17 +1,16 @@
+type MyProc2 is {int|bool data}
 
+method set(&MyProc2 _this, int d) :
+    _this->data = (int|bool)d
 
-type MyProc2 is {any data}
+method get(&MyProc2 _this) -> int|bool:
+    return _this->data
 
-method set(&MyProc2 this, int d) -> void:
-    this->data = d
-
-method get(&MyProc2 this) -> any:
-    return this->data
-
-method create(any data) -> &MyProc2:
+method create(int|bool data) -> &MyProc2:
     return new {data: data}
 
-public export method test() -> void:
-    &MyProc2 p2 = create(1.23)
+public export method test() :
+    &MyProc2 p2 = create(false)
     set(p2,1)
-    assume get(p2) == 1
+    int|bool result = get(p2)
+    assume result == 1

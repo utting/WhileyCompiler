@@ -1,7 +1,7 @@
 
 
-function f(int x) -> !null:
+function f(int x) -> int|bool:
     return x
 
-public export method test() -> void:
+public export method test() :
     assume f(1) == 1

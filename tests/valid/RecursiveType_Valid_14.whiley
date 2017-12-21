@@ -1,20 +1,15 @@
+int ADD = 1
+int SUB = 2
+int MUL = 3
+int DIV = 4
 
+type binop is ({int op, Expr left, Expr right} _this) where _this.op == ADD || _this.op ==  SUB || _this.op ==  MUL || _this.op ==  DIV
 
-constant ADD is 1
-
-constant SUB is 2
-
-constant MUL is 3
-
-constant DIV is 4
-
-type binop is {int op, Expr left, Expr right} where op == ADD || op ==  SUB || op ==  MUL || op ==  DIV
-
-type asbinop is {int op, Expr left, Expr right} where op == ADD || op ==  SUB
+type asbinop is ({int op, Expr left, Expr right} _this) where _this.op == ADD || _this.op ==  SUB
 
 type Expr is int | binop
 
-public export method test() -> void:
+public export method test() :
     Expr bop1 = {op: ADD, left: 1, right: 2}
     Expr bop2 = bop1
     Expr e1 = bop1

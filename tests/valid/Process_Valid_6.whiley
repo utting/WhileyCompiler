@@ -1,12 +1,12 @@
 type Actor is {int data}
 
-method get(&Actor this) -> int:
-    return this->data
+method get(&Actor _this) -> int:
+    return _this->data
 
 method createActor(int n) -> &Actor:
     return new {data: n}
 
-method createActors(int n) -> (&Actor)[]
+method createActors(int n) -> ((&Actor)[] r)
 requires n >= 0:
     (&Actor)[] row = [createActor(0); n]
     int j = 1
@@ -16,7 +16,7 @@ requires n >= 0:
         j = j + 1
     return row
 
-public export method test() -> void:
+public export method test() :
     (&Actor)[] actors = createActors(10)
     int r = 0
     //

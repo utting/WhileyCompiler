@@ -7,7 +7,19 @@
                             |___/             |___/
 
 ======================================================================
-Introduction
+Contents
+======================================================================
+
+1. Introduction
+
+2. Installation
+
+3. Building from Source
+
+4. Making a Contribution
+
+======================================================================
+1. Introduction
 ======================================================================
 
 Whiley is a programming language particularly suited to
@@ -25,16 +37,18 @@ for more on this.
 To find out more, visit http://whiley.org
 
 ======================================================================
-Installation
+2. Installation
 ======================================================================
 
 There are several ways to get started with Whiley:
 
-1) You can install the Eclipse Plugin.
+1) You can run it directly in your web browser.
 
 2) Or, you can download and run the executable Jar.
 
 3) Or, you can download and setup the Whiley Development Kit.
+
+4) You can install the Eclipse Plugin.
 
 The Eclipse plugin is the easiest way to get started with Whiley (see
 instructions below).  If you don't use Eclipse, another simple option
@@ -43,38 +57,32 @@ like to download the Whiley Development Kit (WDK), which includes the
 source code for the compiler/runtime and various scripts to simplify
 compiling and running Whiley programs from the command-line.
 
-1. Whiley Eclipse Plugin (Wyclipse)
+2.1 Whiley Play
 ----------------------------------------------------------------------
-To install the Whiley Eclipse plugin start Eclipse and select "Install
-New Software" (normally found under "Help").  Then, add
-http://whiley.org/eclipse as a "software site", afterwhich you should
-find the "Whiley Eclipse Plugin" becomes an option to install.  At
-this point, "select all" and follow the instructions to install the
-plugin.
 
-For more info on Wyclipse, see http://whiley.org/tools/wyclipse/
+To run Whiley in your web-browser, goto http://whiley.org/play/
 
-2. Whiley Executable Jar
+2.2 Whiley Executable Jar
 ----------------------------------------------------------------------
 If you're running on a Windows system without cygwin, or you're having
-trouble getting the wyjc scripts to work, then a useful alternative is
+trouble getting the wycc scripts to work, then a useful alternative is
 to run the executable jar file directly.  First, download the
-wyjc-all-vX.Y.Z.jar file from http://whiley.org/downloads.  Then, you
+wycc-all-vX.Y.Z.jar file from http://whiley.org/downloads.  Then, you
 can compile Whiley files as follows:
 
 % cd examples
-% java -jar wyjc-all-vX.Y.Z.jar -bp wyjc-all-vX.Y.Z.jar hello-world.whiley
+% java -jar wycc-all-vX.Y.Z.jar compile hello-world.whiley
 
 (here, vX.Y.Z is the version number of the distribution)
 
 Then, to run the program you would do this:
 
-% java -cp "wyjc-all-vX.Y.Z.jar;." hello-world
+% java -jar wycc-all-vX.Y.Z.jar run hello-world
 Hello World
 
 (note: under Mac OS and UNIX you will want to replace the ';' with a ':')
 
-3. Whiley Development Kit (WDK)
+2.3 Whiley Development Kit (WDK)
 ----------------------------------------------------------------------
 To install the Whiley Development Kit, first download it from
 http://whiley.org/downloads.  Then, unpack the tarball into an
@@ -88,34 +96,40 @@ With the PATH setup correctly, you should be able to run the wyjc
 command to compile Whiley programs as follows:
 
 % cd examples
-% wyjc hello-world.whiley
+% wy compile hello-world.whiley
 
 At this point, you can run the program using the whiley command:
 
-% wyj hello-world
+% wy run hello-world
 Hello World
-
-(note: the wyj command is just a wrapper for java -cp lib/wyrt-vX.Y.Z.jar).
-
-NOTE: if you're running on a Windows system without cygwin, or you're
-having trouble getting the wyjc scripts to work, then a useful
-alternative is to run the jar file directly.  You can do this as
-follows:
-
-% cd examples
-% java -jar ../lib/wyjc-vX.Y.Z.jar -bp ../lib/wyrt-vX.Y.Z.jar hello-world.whiley
-
-(here, vX.Y.Z is the version number of the distribution)
-
-Then, to run the program you would do this:
-
-% java -cp "../lib/wyrt-vX.Y.Z.jar;." hello-world
-Hello World
-
-(note: under Mac OS and UNIX you will want to replace the ';' with a ':')
 
 ============================================================================
-Making a Contribution
+3. Building from Source
+============================================================================
+
+The compiler for Whiley shipped with the "Whiley Development Kit" is
+really a compiler framework called the "Whiley Compiler Collection".
+This is made up of a number of plugins, of which the "WhileyCompiler"
+is perhaps the most important.  This is responsible for compiling
+Whiley files into the Whiley Intermediate Language (WyIL).  Additional
+plugins (e.g. the "Whiley2JavaCompiler") are responsible for compiling
+WyIL files for various targets (e.g. JVM bytecode).
+
+As an example, you can build the WhileyCompiler plugin from scratch by
+cloning this repository.  You can build the compiler by running 'ant'
+at the top level (you need to have Apache Ant installed to do this).
+At this point, you need to install the new plugin into your
+distribution of the Whiley Development Kit (see above) in order for it
+to be recognised by the "wy" command (you can do this by simply
+copying wyc-vX.Y.Z.jar into the lib/ directory).
+
+Setting up the WhileyCompiler under an IDE should be straightforward,
+provided it supports Maven.  This is because the necessary
+dependencies for the WhileyCompiler (e.g. other components of the
+Whiley Compiler Collection) are hosted on Maven central.
+
+============================================================================
+4. Making a Contribution
 ============================================================================
 
 When making a contribution to the Whiley project, you will need to

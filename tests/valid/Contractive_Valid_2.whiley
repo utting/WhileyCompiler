@@ -1,9 +1,5 @@
-
-
-type C1 is null | any
-
-type C2 is null | any
-
+type C1 is null | bool
+type C2 is null | bool
 type C3 is C1 | C2
 
 method f(C1 x) -> C3:
@@ -18,6 +14,6 @@ method h(C3 x) -> C1:
 method i(C3 x) -> C2:
     return x
 
-public export method test() -> void:
+public export method test() :
     C3 x = f(null)
     assume x == null

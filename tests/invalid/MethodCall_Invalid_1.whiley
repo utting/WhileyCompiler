@@ -1,5 +1,5 @@
 method f(int x) -> int:
     return 1
 
-method main(&int this):
-    f(this, 1)
+public export method test(&int _this):
+    f(_this, 1)

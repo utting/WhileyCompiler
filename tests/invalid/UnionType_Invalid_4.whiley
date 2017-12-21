@@ -1,9 +1,9 @@
-type IntRealList is int[] | real[]
+type IntBoolList is int[] | bool[]
 
 function f(int[] xs) -> int[]:
     return xs
 
-method main() -> int[]:
-    IntRealList x = [1, 2, 3]
-    x[0] = 1.23
+public export method test() -> int[]:
+    IntBoolList x = [1, 2, 3]
+    x[0] = false
     return f(x)

@@ -13,9 +13,9 @@ ensures |result| == count:
         i = i + 1
     return r
 
-public export method test() -> void:
+public export method test() :
     assume create(3, 3) == [3,3,3]
     assume create(2, 2) == [2,2]
     assume create(2, 1) == [1,1]
     assume create(1, 1) == [1]
-    assume create(0, 0) == [0;0]
+    assume create(0, 0) == []

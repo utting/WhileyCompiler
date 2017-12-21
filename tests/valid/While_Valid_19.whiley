@@ -1,9 +1,7 @@
+int SIZE = 5
 
-
-constant SIZE is 5
-
-public export method test() -> void:
-    int[][] components = [[0;0]; SIZE]
+public export method test() :
+    int[][] components = [[]; SIZE]
     int i = 0
     while i < |components| where i >= 0:
         components[i] = [0]

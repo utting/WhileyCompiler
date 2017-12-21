@@ -4,7 +4,7 @@ function maxDepth(Link links) -> int:
     if links is Link[]:
         int r = 0
         int i = 0
-        while i < |links|:
+        while i < |links| where i >= 0:
             Link l = links[i]
             int t = maxDepth(l)
             if t > r:
@@ -14,7 +14,7 @@ function maxDepth(Link links) -> int:
     else:
         return 0
 
-public export method test() -> void:
+public export method test() :
     Link l1 = null
     Link l2 = [l1]
     Link l3 = [l2]

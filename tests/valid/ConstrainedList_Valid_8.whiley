@@ -2,12 +2,13 @@
 
 type nat is (int x) where x >= 0
 
-function update(nat[] list, nat index, nat value) -> nat[]
-requires index < |list|:
+function update(nat[] list, nat index, nat value) -> (nat[] rs)
+requires index < |list|
+ensures |rs| == |list|:
     list[index] = value
     return list
 
-public export method test() -> void:
+public export method test() :
     nat[] xs = [1, 2, 3, 4]
     xs = update(xs, 0, 2)
     xs = update(xs, 1, 3)

@@ -1,7 +1,7 @@
-constant ADD is 0
-constant SUB is 1
-constant MUL is 2
-constant DIV is 3
+int ADD = 0
+int SUB = 1
+int MUL = 2
+int DIV = 3
 
 type BOp is (int x) where ADD <= x && x <= DIV
 
@@ -25,17 +25,14 @@ function evaluate(Expr e) -> Value:
             if e is Expr[]:
                 return [0;0]
             else:
-                if e is ListAccess:
-                    Value src = evaluate(e.src)
-                    Value index = evaluate(e.index)
-                    if (src is Value[]) && ((index is int) && ((index >= 0) && (index < |src|))):
-                        return src[index]
-                    else:
-                        return 0
+                Value src = evaluate(e.src)
+                Value index = evaluate(e.index)
+                if (src is Value[]) && ((index is int) && ((index >= 0) && (index < |src|))):
+                    return src[index]
                 else:
                     return 0
 
-public export method test() -> void:
+public export method test() :
     Expr e = {op: ADD, rhs: 1, lhs: 123}
     Value v = evaluate(e)
     assume v == 123

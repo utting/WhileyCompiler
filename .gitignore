@@ -2,6 +2,7 @@
 .project
 *.class
 *.wyil
+*.wyal
 *.wyasm
 *.wycs
 *~
@@ -11,3 +12,8 @@
 *.smt2
 /report/
 /build/
+/dist/
+/modules/wycs/src/wycs/core/Types.java
+/modules/wycs/src/wycs/solver/Solver.java
+/bin/
+/target/

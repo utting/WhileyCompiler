@@ -1,151 +1,168 @@
-<project name="whiley" default="build-all">
+<project name="wyc" default="build" xmlns:artifact="urn:maven-ant">
+
+  <!-- ================================================================== -->
+  <!-- Configuration -->
+  <!-- ================================================================== -->
   <import file="config.xml"/>
 
-  <!-- ============================================== -->
-  <!-- Build Commands -->
-  <!-- ============================================== -->
+  <!-- ================================================================== -->
+  <!-- Setup -->
+  <!-- ================================================================== -->
 
-  <target name="build-all">
-    <subant failonerror="true" target="build">
-      <fileset dir="modules" includes="wybs/build.xml"/>
-      <fileset dir="modules" includes="wycs/build.xml"/>
-      <fileset dir="modules" includes="wyil/build.xml"/>
-      <fileset dir="modules" includes="wyc/build.xml"/>
-      <fileset dir="modules" includes="wyrt/build.xml"/>
-      <fileset dir="modules" includes="wyjc/build.xml"/>
-    </subant>
+  <target name="setup">
+    <mkdir dir="${JAR_DIR}"/>
+    <mkdir dir="${CLASS_DIR}"/>
+    <mkdir dir="${DOC_DIR}"/>
   </target>
 
-  <!-- ============================================== -->
-  <!-- Documenation -->
-  <!-- ============================================== -->
+  <!-- ================================================================== -->
+  <!-- Compile -->
+  <!-- ================================================================== -->
 
-  <target name="doc">
-    <javadoc
-       destdir="docs/api"
-       author="true"
-       version="true"
-       use="true"
-       windowtitle="Whiley Compiler API">
-      <doctitle><![CDATA[<h1>The Whiley Compiler (v${version})</h1>]]></doctitle>
-      <bottom><![CDATA[<i>Copyright &#169; 2011 David J. Pearce. All Rights Reserved.</i>]]></bottom>
-      <packageset dir="modules/wybs/src">
-	<include name="wyfs/**"/>
-	<include name="wybs/**"/>
-	<include name="wycc/**"/>
-      </packageset>
-      <packageset dir="modules/wycs/src">
-	<include name="wycs/**"/>
-	<exclude name="wycs/testing/**"/>
-      </packageset>
-      <packageset dir="modules/wyil/src">
-	<include name="wyil/**"/>
-	<include name="wyautl_old/**"/>
-	<exclude name="wyil/testing/**"/>
-      </packageset>
-      <packageset dir="modules/wyc/src">
-	<include name="wyc/**"/>
-	<exclude name="wyc/testing/**"/>
-      </packageset>
-      <packageset dir="modules/wyjc/src">
-	<include name="wyjc/**"/>
-	<include name="wyjvm/**"/>
-	<exclude name="wyjc/testing/**"/>
-      </packageset>
-      <!--
-      <packageset dir="modules/wycc/src">
-	<include name="wycc/**"/>
-	<exclude name="wycc/testing/**"/>
-      </packageset>
-      -->
-      <group title="Whiley Build System (WYBS)" packages="wybs:wyfs.*:wybs.*:wycc.*"/>
-      <group title="Whiley Compiler (WYC)" packages="wyc:wyc.*"/>
-      <group title="Whiley Intermediate Language (WYIL)" packages="wyil:wyil.*"/>
-      <group title="Whiley-2-Java Compiler (WYJC)" packages="wyjc:wyjc.*:wyjvm.*"/>
-      <!--<group title="Whiley-2-C Compiler (WYCC)" packages="wycc:wycc.*"/>-->
-      <group title="Whiley Constraint Solver (WYCS)" packages="wycs:wycs.*"/>
-      </javadoc>
+  <target name="compile" depends="setup">
+    <javac includeantruntime="false"
+	   target="${JAVA_VERSION}"
+	   srcdir="${JAVA_DIR}"
+	   destdir="${CLASS_DIR}">
+      <classpath>
+	<path refid="MAVEN_DEPS"/>
+    </classpath>
+    </javac>
   </target>
 
-  <!-- ============================================== -->
-  <!-- Distribution -->
-  <!-- ============================================== -->
+  <!-- ================================================================== -->
+  <!-- Compile Tests -->
+  <!-- ================================================================== -->
 
-  <target name="distjars" depends="build-all">
-    <subant failonerror="false" target="dist">
-      <fileset dir="modules" includes="wybs/build.xml"/>
-      <fileset dir="modules" includes="wycs/build.xml"/>
-      <fileset dir="modules" includes="wyil/build.xml"/>
-      <fileset dir="modules" includes="wyc/build.xml"/>
-      <fileset dir="modules" includes="wyrt/build.xml"/>
-      <fileset dir="modules" includes="wyjc/build.xml"/>
-
-    </subant>
+  <target name="compile-tests" depends="compile">
+    <javac includeantruntime="false"
+	   target="${JAVA_VERSION}"
+	   srcdir="${TEST_DIR}"
+	   destdir="${CLASS_DIR}">
+      <classpath>
+	<path refid="MAVEN_DEPS"/>
+    </classpath>
+    </javac>
   </target>
 
-  <target name="distsrc" depends="build-all">
-  <mkdir dir="wdk-v${version}"/>
-  <copy todir="wdk-v${version}">
-    <fileset dir=".">
-      <include name="LICENSE"/>
-      <include name="README"/>
-      <include name="CONTRIBUTORS"/>
-      <include name="build.xml"/>
-      <include name="config.xml"/>
-      <include name="modules/**/*.java"/>
-      <include name="modules/**/*.whiley"/>
-      <include name="modules/**/*.wyrl"/>
-      <include name="modules/**/*.wycs"/>
-      <include name="modules/**/*.xml"/>
-      <include name="examples/**/*.whiley"/>
-      <include name="tests/**/*.whiley"/>
-      <include name="tests/**/*.sysout"/>
-      <include name="bin/wyilc"/>
-      <include name="bin/wyc"/>
-      <include name="bin/wyjc"/>
-      <include name="bin/wyj"/>
-      <include name="bin/wycc"/>
-      <include name="bin/wycs"/>
-      <include name="bin/wy_common.bash"/>
-      <include name="lib/*-v${version}.jar"/>
-      <include name="lib/wyrl-v*.jar"/>
-      <include name="lib/jasm-v*.jar"/>
-    </fileset>
-  </copy>
-  <tar destfile="dist/wdk-src-v${version}.tar" longfile="gnu">
-    <tarfileset dir="." includes="wdk-v${version}/**/*"/>
-    <tarfileset dir="." filemode="755">
-      <include name="wdk-v${version}/bin/*"/>
-    </tarfileset>
-  </tar>
-  <gzip destfile="dist/wdk-src-v${version}.tgz" src="dist/wdk-src-v${version}.tar"/>
-  <delete file="dist/wdk-src-v${version}.tar"/>
-  <delete dir="wdk-v${version}"/>
-    <echo message="============================================="/>
-    <echo message="BUILT: dist/wdk-src-v${version}.tgz"/>
-    <echo message="============================================="/>
+  <!-- ================================================================== -->
+  <!-- Test -->
+  <!-- ================================================================== -->
+
+  <target name="test" depends="compile-tests">
+    <junit printsummary="yes"
+	   fork="yes"
+	   haltonfailure="yes">
+      <formatter type="plain" usefile="false"/>
+      <batchtest>
+        <fileset dir="${TEST_DIR}" includes="**/*Test.java"/>
+      </batchtest>
+      <classpath>
+	<pathelement path="${CLASS_DIR}"/>
+	<path refid="MAVEN_DEPS"/>
+      </classpath>
+    </junit>
   </target>
 
-  <target name="dist" depends="distsrc,distjars">
+  <!-- ================================================================== -->
+  <!-- Build -->
+  <!-- ================================================================== -->
+
+  <target name="build" depends="compile">
+    <jar destfile="${CLASS_JAR}">
+      <fileset dir="${CLASS_DIR}" includes="**/*.class"/>
+    </jar>
   </target>
 
-  <!-- ============================================== -->
-  <!-- Misc Commands -->
-  <!-- ============================================== -->
+  <!-- ================================================================== -->
+  <!-- Dist -->
+  <!-- ================================================================== -->
+
+  <target name="dist" depends="build">
+    <!-- build sources jar -->
+    <jar destfile="${JAVA_JAR}">
+      <fileset dir="${JAVA_DIR}" includes="**/*.java"/>
+    </jar>
+    <!-- build javadoc jar -->
+    <javadoc sourcepath="${JAVA_DIR}" destdir="${DOC_DIR}">
+      <classpath refid="MAVEN_DEPS"/>      
+      <arg value="-Xdoclint:none"/>
+    </javadoc>
+    <jar jarfile="${DOC_JAR}">
+      <fileset dir="${DOC_DIR}" />
+    </jar>    
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- DEPLOY SNAPSHOT -->
+  <!-- ================================================================== -->
+
+  <target name="deploy-snapshot" depends="dist">
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-deploy-plugin:2.6:deploy-file" />
+      <arg value="-Durl=${SNAPSHOT_URL}" />
+      <arg value="-DrepositoryId=${SERVER_ID}" />
+      <arg value="-DpomFile=pom.xml" />
+      <arg value="-Dfile=${CLASS_JAR}" />
+    </artifact:mvn>
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- DEPLOY -->
+  <!-- ================================================================== -->
+  
+  <target name="deploy" depends="dist">
+    <!-- sign and deploy the main artifact -->
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+      <arg value="-Durl=${STAGING_URL}" />
+      <arg value="-DrepositoryId=${SERVER_ID}" />
+      <arg value="-DpomFile=pom.xml" />
+      <arg value="-Dfile=${CLASS_JAR}" />
+      <arg value="-Pgpg"/>
+      <arg value="-e"/>
+    </artifact:mvn>
+
+    <!-- sign and deploy the sources artifact -->
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+      <arg value="-Durl=${STAGING_URL}" />
+      <arg value="-DrepositoryId=${SERVER_ID}" />
+      <arg value="-DpomFile=pom.xml" />
+      <arg value="-Dfile=${CLASS_JAR}" />
+      <arg value="-Dclassifier=sources" />
+      <arg value="-Pgpg" />
+    </artifact:mvn>
+
+    <!-- sign and deploy the javadoc artifact -->
+    <artifact:mvn>
+      <arg value="org.apache.maven.plugins:maven-gpg-plugin:1.3:sign-and-deploy-file" />
+      <arg value="-Durl=${STAGING_URL}" />
+      <arg value="-DrepositoryId=${SERVER_ID}" />
+      <arg value="-DpomFile=pom.xml" />
+      <arg value="-Dfile=${CLASS_JAR}" />
+      <arg value="-Dclassifier=javadoc" />
+      <arg value="-Pgpg" />
+    </artifact:mvn>
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- Deploy Plugin -->
+  <!-- ================================================================== -->
+
+  <target name="plugin" depends="build">
+    <copy file="${CLASS_JAR}" todir="${WHILEYHOME}/lib"/>
+  </target>
+
+  <!-- ================================================================== -->
+  <!-- Clean -->
+  <!-- ================================================================== -->
 
   <target name="clean">
-    <subant failonerror="false" target="clean">
-      <fileset dir="modules" includes="*/build.xml"/>
-    </subant>
     <delete includeEmptyDirs="true" failonerror="false">
-      <fileset file="*~"/>
-      <fileset dir="dist"/>
-      <fileset dir="docs"/>
-      <fileset dir="tests">
-		<include name="**/*.class"/>
-		<include name="**/*.wyil"/>
-		<include name="**/*.o"/>
-      </fileset>
+      <fileset dir="${BIN_DIR}"/>
+      <fileset dir="." includes="**/*.wyil,**/*.class"/>
     </delete>
   </target>
+
 </project>

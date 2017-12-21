@@ -2,7 +2,7 @@
 function f(int x) -> int[]:
     return toString(x)
 
-import toString from whiley.lang.Any
+import toString from std::ascii
 
-function g(real x) -> int[]:
+function g(any x) -> int[]:
     return toString(x)

@@ -4,16 +4,16 @@ type Proc is &{
     function func(int) -> int
 }
 
-method func(Proc this, int x) -> int:
+method func(Proc _this, int x) -> int:
     return x + 1
 
-public export method test(Proc this, int arg) -> int:
-    return (*this).func(arg)
+public export method test(Proc _this, int arg) -> int:
+    return (*_this).func(arg)
 
 function id(int x) -> int:
     return x
 
-public export method test() -> void:
+public export method test() :
     Proc p = new {func: &id}
     int x = test(p, 123)
     assume x == 123

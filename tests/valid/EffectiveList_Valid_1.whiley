@@ -15,8 +15,8 @@ function f(int[] xs) -> nbool[]:
         i = i + 1
     return r
 
-public export method test() -> void:
+public export method test() :
     int[] e = [0;0]
-    assume f(e) == [false;0]
+    assume f(e) == []
     e = [1, 2, 3, 4]
     assume f(e) == [null,null,null,null]

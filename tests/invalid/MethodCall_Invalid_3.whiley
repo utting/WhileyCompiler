@@ -1,2 +1,2 @@
-method main(int[] this) -> void:
-    this.f(1)
+public export method test(int[] _this) :
+    _this.f(1)

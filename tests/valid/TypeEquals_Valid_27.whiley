@@ -6,14 +6,18 @@ type Point3D is {int z, int y, int x}
 
 type Points is Point | Point3D
 
-public export method test(Points t) -> bool:
+public method isPoint3D(Points t) -> bool:
     if t is Point:
         return true
     else:
         return false
 
-public export method test() -> void:
+public export method test() :
     Point3D p3d = {z: 3, y: 2, x: 1}
-    assume test(p3d) == false
+    //
+    bool result = isPoint3D(p3d)
+    assume result == false
+    //
     Point p2d = {y: 2, x: 1}
-    assume test(p2d) == true
+    result = isPoint3D(p2d)
+    assume result == true

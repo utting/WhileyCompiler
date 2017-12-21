@@ -1,8 +1,6 @@
-
-
 type imsg is int | {int op} | {int[] msg}
 
-function getMessage(imsg m) -> any:
+function getMessage(imsg m) -> int[]|int:
     if m is {int[] msg}:
         return m.msg
     else:
@@ -11,7 +9,7 @@ function getMessage(imsg m) -> any:
         else:
             return m
 
-public export method test() -> void:
+public export method test() :
     assume getMessage({msg: "HELLO WORLD"}) == "HELLO WORLD"
     assume getMessage(1) == 1
     assume getMessage({op: 123}) == 123

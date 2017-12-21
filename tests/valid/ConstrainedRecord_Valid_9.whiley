@@ -2,15 +2,15 @@
 
 type nat is (int x) where x >= 0
 
-type Matrix is {
+type Matrix is ({
     int height,
     int width,
     int[][] data
-} where |data| == height && height >= 0 && width >= 0 &&
-        no { i in 0..|data| | |data[i]| != width }
+} m) where |m.data| == m.height && m.height >= 0 && m.width >= 0 &&
+        all { i in 0..|m.data| | |m.data[i]| == m.width }
 
 function Matrix(nat width, nat height, int[][] data) -> (Matrix result)
-requires (|data| == height) && no { i in 0..|data| | |data[i]| != width }
+requires (|data| == height) && all { i in 0..|data| | |data[i]| == width }
 ensures result.width == width && result.height == height && result.data == data:
     //
     return {height: height, width: width, data: data}
@@ -19,7 +19,7 @@ function run(Matrix A, Matrix B) -> (Matrix C)
 requires A.width == B.height
 ensures (C.width == B.width) && (C.height == A.height):
     //
-    int[][] C_data = [[0;0]; A.height]
+    int[][] C_data = [[]; A.height]
     int i = 0
     while i < A.height where i >= 0 where |C_data| == A.height:
         int[] row = [0; B.width]
@@ -36,7 +36,7 @@ ensures (C.width == B.width) && (C.height == A.height):
         i = i + 1
     return Matrix(B.width, A.height, C_data)
     
-public export method test() -> void:
+public export method test() :
     Matrix m1 = Matrix(2, 2, [[1, 0], [-3, 2]])
     Matrix m2 = Matrix(2, 2, [[-1, 4], [3, 5]])
     Matrix m3 = run(m1, m2)

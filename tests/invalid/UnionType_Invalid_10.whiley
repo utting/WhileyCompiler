@@ -6,5 +6,5 @@ type nlt is nat | natlist
 function g(int y) -> nlt:
     return y
 
-method main() -> void:
+public export method test() :
     g(-1)

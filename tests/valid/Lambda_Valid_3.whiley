@@ -54,10 +54,10 @@ requires amount >= 0:
 
 // Construct buffer from list of bytes
 public method BufferInputStream(byte[] buffer) -> InputStream:
-    BufferState this = new {bytes: buffer, pos: 0}
-    return {read: &(int x -> read(this, x))}
+    BufferState _this = new {bytes: buffer, pos: 0}
+    return {read: &(int x -> read(_this, x))}
 
-public export method test() -> void:
+public export method test() :
     InputStream bis = BufferInputStream(toBytes("hello"))
     byte[] bytes = bis.read(7)
     assume bytes == [01101000b, 01100101b, 01101100b, 01101100b, 01101111b, 0b, 0b]

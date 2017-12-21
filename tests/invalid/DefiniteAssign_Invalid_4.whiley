@@ -1,5 +1,5 @@
-method f(any this) -> void:
-    debug a
+method f(int|null p) :
+    skip
 
-method g() -> void:
+method g() :
     f(x)

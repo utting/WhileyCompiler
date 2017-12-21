@@ -4,8 +4,8 @@ method read(int x) -> int:
     return x + 123
 
 method test(MyMeth m) -> int:
-    return m(1.2)
+    return m(false)
 
-method main() -> int:
+public export method test() -> int:
     return test(&read)
     

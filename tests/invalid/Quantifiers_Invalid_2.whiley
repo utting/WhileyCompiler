@@ -1,7 +1,7 @@
 
 function f(int[] ls) -> bool
-requires no { i in 0..|ls| | ls[i] <= 0 }:
+requires all { i in 0..|ls| | ls[i] > 0 }:
     return true
 
-method main() -> void:
+public export method test() :
     f([0, 1, 2, 3])

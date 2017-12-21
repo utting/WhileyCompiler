@@ -8,10 +8,10 @@ type expr is pos | neg
 function g(neg x) -> bool:
     return false
 
-function f(expr e) -> void:
+function f(expr e) :
     if e is pos:
         g(e)
 
-method main() -> void:
+public export method test() :
     f(-1)
     f(1)
